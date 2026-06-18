@@ -65,9 +65,8 @@ class AppBaseView extends GetView<BaseViewModel> {
                       IconButton(
                         icon: const Icon(Icons.lightbulb_outline_rounded),
                         color: Colors.black,
-                        tooltip: 'My Ideas',
-                        onPressed: () =>
-                            Get.toNamed(AppConfig().routes.ideaCard),
+                        tooltip: 'Saved Ideas',
+                        onPressed: () {},
                       ),
                     ],
                   ),

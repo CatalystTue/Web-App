@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 
-enum _DismissDirection { up, down }
+enum _DismissDirection { up, down, right }
 
 class _StackCard {
   final int id;
@@ -37,12 +37,14 @@ class _StackSnapshot {
   final List<StackUserModel> userPool;
   final int frontIndex;
   final int nextCardId;
+  final Set<int> markedCardIds;
 
   const _StackSnapshot({
     required this.cards,
     required this.userPool,
     required this.frontIndex,
     required this.nextCardId,
+    required this.markedCardIds,
   });
 }
 
@@ -89,6 +91,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
   _DismissDirection? _dismissDirection;
   bool _isDismissing = false;
   final List<_StackSnapshot> _undoHistory = [];
+  final Set<int> _markedCardIds = {};
   final FocusNode _keyboardFocusNode = FocusNode();
 
   bool get canUndo => _undoHistory.isNotEmpty && !_isDismissing;
@@ -102,7 +105,20 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
       _userPool = List<StackUserModel>.from(snapshot.userPool);
       _frontIndex = snapshot.frontIndex;
       _nextCardId = snapshot.nextCardId;
+      _markedCardIds
+        ..clear()
+        ..addAll(snapshot.markedCardIds);
     });
+  }
+
+  void _heartCard(int cardId) {
+    if (_isDismissing || _cards.isEmpty) return;
+
+    final cardIndex = _cards.indexWhere((card) => card.id == cardId);
+    if (cardIndex < 0 || _stackPosition(_cards[cardIndex]) != 0) return;
+
+    _markedCardIds.add(cardId);
+    _dismissCard(_DismissDirection.right, _cards[cardIndex]);
   }
 
   @override
@@ -191,11 +207,18 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
 
   Future<void> _dismissFrontCard(_DismissDirection direction) async {
     if (_isDismissing || _cards.isEmpty) return;
+    await _dismissCard(direction, _cards[_frontIndex]);
+  }
 
-    final frontCard = _cards[_frontIndex];
+  Future<void> _dismissCard(
+    _DismissDirection direction,
+    _StackCard card,
+  ) async {
+    if (_isDismissing || _cards.isEmpty) return;
+
     setState(() {
       _isDismissing = true;
-      _dismissingCardId = frontCard.id;
+      _dismissingCardId = card.id;
       _dismissDirection = direction;
     });
 
@@ -209,8 +232,9 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
         userPool: List<StackUserModel>.from(_userPool),
         frontIndex: _frontIndex,
         nextCardId: _nextCardId,
+        markedCardIds: Set<int>.from(_markedCardIds),
       ));
-      _applyDismiss(frontCard);
+      _applyDismiss(card);
       _dismissingCardId = null;
       _dismissDirection = null;
       _isDismissing = false;
@@ -227,6 +251,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
   }
 
   void _applyDismiss(_StackCard dismissed) {
+    _markedCardIds.remove(dismissed.id);
     final dismissedPos = dismissed.initStackPos;
 
     if (dismissedPos < _lastTwoThreshold) {
@@ -410,8 +435,17 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     final horizontalOffset =
         (card.initStackPos - _centerCardIndex) * _horizontalStep;
 
+    final horizontalDismiss = isDismissing &&
+            _dismissDirection == _DismissDirection.right
+        ? 1.4
+        : 0.0;
+
     final verticalDismiss = isDismissing
-        ? (_dismissDirection == _DismissDirection.up ? -1.4 : 1.4)
+        ? switch (_dismissDirection) {
+            _DismissDirection.up => -1.4,
+            _DismissDirection.down => 1.4,
+            _ => 0.0,
+          }
         : 0.0;
 
     final opacity = isDismissing ? 0.0 : (isFront ? 1.0 : 0.9);
@@ -422,7 +456,10 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
       duration: _animationDuration,
       curve: Curves.easeInOutCubic,
       child: AnimatedSlide(
-        offset: Offset(horizontalOffset / cardWidth, verticalDismiss),
+        offset: Offset(
+          horizontalOffset / cardWidth + horizontalDismiss,
+          verticalDismiss,
+        ),
         duration: _animationDuration,
         curve: Curves.easeInOutCubic,
         child: AnimatedContainer(
@@ -446,46 +483,78 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
             clipBehavior: Clip.antiAlias,
             child: Padding(
               padding: EdgeInsets.all(AppConfig().dimens.medium),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Stack(
                 children: [
-                  Container(
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: card.color,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  Gap(AppConfig().dimens.medium),
-                  Text(
-                    card.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: isFront ? 24 : 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppConfig().colors.txtHeaderColor,
-                    ),
-                  ),
-                  Gap(AppConfig().dimens.small),
-                  Expanded(
-                    child: Text(
-                      card.description.isNotEmpty
-                          ? card.description
-                          : 'No description',
-                      maxLines: isFront ? 8 : 5,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: isFront ? 15 : 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppConfig().colors.txtBodyColor,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: card.color,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                       ),
-                    ),
+                      Gap(AppConfig().dimens.medium),
+                      Text(
+                        card.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: isFront ? 24 : 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppConfig().colors.txtHeaderColor,
+                        ),
+                      ),
+                      Gap(AppConfig().dimens.small),
+                      Expanded(
+                        child: Text(
+                          card.description.isNotEmpty
+                              ? card.description
+                              : 'No description',
+                          maxLines: isFront ? 8 : 5,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: isFront ? 15 : 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppConfig().colors.txtBodyColor,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: isFront ? 32 : 24),
+                    ],
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: _buildHeartButton(card.id, isFront),
                   ),
                 ],
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeartButton(int cardId, bool isFront) {
+    final isMarked = _markedCardIds.contains(cardId);
+    final size = isFront ? 32.0 : 24.0;
+    final red = AppConfig().colors.redColor;
+    final canHeart = isFront && !_isDismissing;
+
+    return IconButton(
+      onPressed: canHeart ? () => _heartCard(cardId) : null,
+      padding: EdgeInsets.zero,
+      constraints: BoxConstraints.tightFor(width: size + 8, height: size + 8),
+      icon: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: Icon(
+          isMarked ? Icons.favorite : Icons.favorite_border,
+          key: ValueKey(isMarked),
+          color: red,
+          size: size,
         ),
       ),
     );

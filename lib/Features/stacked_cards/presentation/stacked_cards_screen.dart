@@ -66,9 +66,8 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
   static const double _cardWidth = 260;
   static const double _cardHeight = 400;
   static const double _cardGap = -150;
+  static const double _behindScale = 0.4;
   static const double _horizontalStep = _cardWidth + _cardGap;
-  static const double _behindWidthFactor = 0.4;
-  static const double _behindHeightFactor = 0.4;
   static const double _stackWidth =
       _cardWidth + (_visibleCardCount - 1) * _horizontalStep;
   static const double _stackHeight = 440;
@@ -429,9 +428,6 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     final stackPos = _stackPosition(card);
     final isFront = stackPos == 0;
     final isDismissing = card.id == _dismissingCardId;
-    final cardWidth = isFront ? _cardWidth : _cardWidth * _behindWidthFactor;
-    final cardHeight =
-        isFront ? _cardHeight : _cardHeight * _behindHeightFactor;
     final horizontalOffset =
         (card.initStackPos - _centerCardIndex) * _horizontalStep;
 
@@ -457,104 +453,111 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
       curve: Curves.easeInOutCubic,
       child: AnimatedSlide(
         offset: Offset(
-          horizontalOffset / cardWidth + horizontalDismiss,
+          horizontalOffset / _cardWidth + horizontalDismiss,
           verticalDismiss,
         ),
         duration: _animationDuration,
         curve: Curves.easeInOutCubic,
-        child: AnimatedContainer(
-          duration: _animationDuration,
-          curve: Curves.easeInOutCubic,
-          width: cardWidth,
-          height: cardHeight,
-          child: Card(
-            elevation: isFront ? 10.0 : 4.0,
-            shadowColor: Colors.black.withOpacity(0.2),
-            color: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(
-                color: isFront
-                    ? card.color.withOpacity(0.55)
-                    : AppConfig().colors.lightGrayColor.withOpacity(0.4),
-                width: isFront ? 2 : 1,
-              ),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Padding(
-              padding: EdgeInsets.all(AppConfig().dimens.medium),
-              child: Stack(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: card.color,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      Gap(AppConfig().dimens.medium),
-                      Text(
-                        card.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: isFront ? 24 : 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppConfig().colors.txtHeaderColor,
-                        ),
-                      ),
-                      Gap(AppConfig().dimens.small),
-                      Expanded(
-                        child: Text(
-                          card.description.isNotEmpty
-                              ? card.description
-                              : 'No description',
-                          maxLines: isFront ? 8 : 5,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: isFront ? 15 : 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppConfig().colors.txtBodyColor,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: isFront ? 32 : 24),
-                    ],
-                  ),
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: _buildHeartButton(card.id, isFront),
-                  ),
-                ],
-              ),
-            ),
+        child: SizedBox(
+          width: _cardWidth,
+          height: _cardHeight,
+          child: AnimatedScale(
+            scale: isFront ? 1.0 : _behindScale,
+            duration: _animationDuration,
+            curve: Curves.easeInOutCubic,
+            alignment: Alignment.center,
+            child: _buildCardFace(card, isInteractive: isFront),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildHeartButton(int cardId, bool isFront) {
+  Widget _buildCardFace(_StackCard card, {required bool isInteractive}) {
+    return Card(
+      elevation: 10.0,
+      shadowColor: Colors.black.withOpacity(0.2),
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: card.color.withOpacity(0.55),
+          width: 2,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: EdgeInsets.all(AppConfig().dimens.medium),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: card.color,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                Gap(AppConfig().dimens.medium),
+                Text(
+                  card.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppConfig().colors.txtHeaderColor,
+                  ),
+                ),
+                Gap(AppConfig().dimens.small),
+                Expanded(
+                  child: Text(
+                    card.description.isNotEmpty
+                        ? card.description
+                        : 'No description',
+                    maxLines: 8,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppConfig().colors.txtBodyColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+              ],
+            ),
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: _buildHeartButton(
+                card.id,
+                canHeart: isInteractive && !_isDismissing,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeartButton(int cardId, {required bool canHeart}) {
     final isMarked = _markedCardIds.contains(cardId);
-    final size = isFront ? 32.0 : 24.0;
     final red = AppConfig().colors.redColor;
-    final canHeart = isFront && !_isDismissing;
 
     return IconButton(
       onPressed: canHeart ? () => _heartCard(cardId) : null,
       padding: EdgeInsets.zero,
-      constraints: BoxConstraints.tightFor(width: size + 8, height: size + 8),
+      constraints: const BoxConstraints.tightFor(width: 40, height: 40),
       icon: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
         child: Icon(
           isMarked ? Icons.favorite : Icons.favorite_border,
           key: ValueKey(isMarked),
           color: red,
-          size: size,
+          size: 32,
         ),
       ),
     );

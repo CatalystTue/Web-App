@@ -1,0 +1,458 @@
+import 'package:catalyst_flutter_app/Core/Constants/config.dart';
+import 'package:catalyst_flutter_app/Core/Data/Models/stack_user_model.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:gap/gap.dart';
+
+enum _DismissDirection { up, down }
+
+class _StackCard {
+  final int id;
+  int initStackPos;
+  final Color color;
+  final String name;
+  final String description;
+
+  _StackCard({
+    required this.id,
+    required this.initStackPos,
+    required this.color,
+    required this.name,
+    required this.description,
+  });
+
+  _StackCard copyWith({int? initStackPos}) {
+    return _StackCard(
+      id: id,
+      initStackPos: initStackPos ?? this.initStackPos,
+      color: color,
+      name: name,
+      description: description,
+    );
+  }
+}
+
+class StackedCardsScreen extends StatefulWidget {
+  final List<StackUserModel> users;
+
+  const StackedCardsScreen({
+    super.key,
+    required this.users,
+  });
+
+  @override
+  State<StackedCardsScreen> createState() => _StackedCardsScreenState();
+}
+
+class _StackedCardsScreenState extends State<StackedCardsScreen> {
+  static const int _visibleCardCount = 5;
+  static const Duration _animationDuration = Duration(milliseconds: 500);
+  static const double _cardWidth = 260;
+  static const double _cardHeight = 400;
+  static const double _cardGap = -150;
+  static const double _horizontalStep = _cardWidth + _cardGap;
+  static const double _behindWidthFactor = 0.4;
+  static const double _behindHeightFactor = 0.4;
+  static const double _stackWidth =
+      _cardWidth + (_visibleCardCount - 1) * _horizontalStep;
+  static const double _stackHeight = 440;
+  static const int _centerCardIndex = 2;
+  static const int _lastTwoThreshold = 3;
+
+  static const List<Color> _cardColors = [
+    Color(0xFF4F5D75),
+    Color(0xFFA4D294),
+    Color(0xFFFF9B9B),
+    Color(0xFF605D64),
+    Color(0xFFFA7E7E),
+  ];
+
+  late List<_StackCard> _cards;
+  late List<StackUserModel> _userPool;
+  int _frontIndex = _centerCardIndex;
+  int _nextCardId = 0;
+  int? _dismissingCardId;
+  _DismissDirection? _dismissDirection;
+  bool _isDismissing = false;
+  final FocusNode _keyboardFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _userPool = List<StackUserModel>.from(widget.users);
+    _cards = _buildInitialCards();
+    _frontIndex = _cards.isEmpty ? 0 : _indexOfCenterCard();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _keyboardFocusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _keyboardFocusNode.dispose();
+    super.dispose();
+  }
+
+  List<_StackCard> _buildInitialCards() {
+    final initialUsers = _userPool.take(_visibleCardCount).toList();
+    if (initialUsers.length == _userPool.length) {
+      _userPool = [];
+    } else {
+      _userPool = _userPool.sublist(initialUsers.length);
+    }
+
+    while (initialUsers.length < _visibleCardCount) {
+      initialUsers.add(_nextUserFromPool());
+    }
+
+    return List.generate(
+      _visibleCardCount,
+      (index) => _stackCardFromUser(
+        user: initialUsers[index],
+        initStackPos: index,
+      ),
+    );
+  }
+
+  _StackCard _stackCardFromUser({
+    required StackUserModel user,
+    required int initStackPos,
+  }) {
+    final id = _nextCardId++;
+    return _StackCard(
+      id: id,
+      initStackPos: initStackPos,
+      color: _cardColors[id % _cardColors.length],
+      name: user.name.isNotEmpty ? user.name : 'Card ${id + 1}',
+      description: user.description,
+    );
+  }
+
+  StackUserModel _nextUserFromPool() {
+    if (_userPool.isNotEmpty) {
+      return _userPool.removeAt(0);
+    }
+    return StackUserModel(
+      name: 'User ${_nextCardId + 1}',
+      description: 'No more users in queue.',
+    );
+  }
+
+  void _bringNextCardForward() {
+    int init_idx = 0;
+    if (_isDismissing || _cards.isEmpty) return;
+    init_idx = _cards[_frontIndex].initStackPos;
+    init_idx = (init_idx + 1) % _cards.length;
+    setState(() {
+      _frontIndex = _InittoIdx(init_idx);
+    });
+  }
+
+  void _bringPreviousCardForward() {
+    int init_idx = 0;
+    if (_isDismissing || _cards.isEmpty) return;
+    init_idx = _cards[_frontIndex].initStackPos;
+    init_idx = (init_idx - 1 + _cards.length) % _cards.length;
+    setState(() {
+      _frontIndex = _InittoIdx(init_idx);
+    });
+  }
+
+  Future<void> _dismissFrontCard(_DismissDirection direction) async {
+    if (_isDismissing || _cards.isEmpty) return;
+
+    final frontCard = _cards[_frontIndex];
+    setState(() {
+      _isDismissing = true;
+      _dismissingCardId = frontCard.id;
+      _dismissDirection = direction;
+    });
+
+    await Future.delayed(_animationDuration);
+
+    if (!mounted) return;
+
+    setState(() {
+      _applyDismiss(frontCard);
+      _dismissingCardId = null;
+      _dismissDirection = null;
+      _isDismissing = false;
+    });
+  }
+
+  int _InittoIdx(int index) {
+    for (int i = 0; i < _cards.length; i++) {
+      if (_cards[i].initStackPos == index) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  void _applyDismiss(_StackCard dismissed) {
+    final dismissedPos = dismissed.initStackPos;
+
+    if (dismissedPos < _lastTwoThreshold) {
+      _cards = _cards.where((card) => card.id != dismissed.id).map((card) {
+        if (card.initStackPos < dismissedPos) {
+          return card.copyWith(initStackPos: card.initStackPos + 1);
+        }
+        return card;
+      }).toList();
+
+      _cards.add(_stackCardFromUser(
+        user: _nextUserFromPool(),
+        initStackPos: 0,
+      ));
+    } else {
+      _cards = _cards.where((card) => card.id != dismissed.id).map((card) {
+        if (card.initStackPos > dismissedPos) {
+          return card.copyWith(initStackPos: card.initStackPos - 1);
+        }
+        return card;
+      }).toList();
+
+      final maxPos = _cards.fold<int>(
+        0,
+        (max, card) => card.initStackPos > max ? card.initStackPos : max,
+      );
+
+      _cards.add(_stackCardFromUser(
+        user: _nextUserFromPool(),
+        initStackPos: maxPos + 1,
+      ));
+    }
+
+    _normalizeInitStackPositions();
+    _frontIndex = _indexOfCenterCard();
+  }
+
+  void _normalizeInitStackPositions() {
+    final sorted = List<_StackCard>.from(_cards)
+      ..sort((a, b) => a.initStackPos.compareTo(b.initStackPos));
+
+    for (var i = 0; i < sorted.length; i++) {
+      final card = sorted[i];
+      final listIndex = _cards.indexWhere((c) => c.id == card.id);
+      if (listIndex >= 0) {
+        _cards[listIndex] = card.copyWith(initStackPos: i);
+      }
+    }
+  }
+
+  int _indexOfCenterCard() {
+    final centerIndex =
+        _cards.indexWhere((card) => card.initStackPos == _centerCardIndex);
+    if (centerIndex >= 0) return centerIndex;
+
+    var closestIndex = 0;
+    var closestDistance = 999;
+    for (var i = 0; i < _cards.length; i++) {
+      final distance = (_cards[i].initStackPos - _centerCardIndex).abs();
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestIndex = i;
+      }
+    }
+    return closestIndex;
+  }
+
+  int _stackPosition(_StackCard card) {
+    if (_cards.isEmpty) return 0;
+    final frontInitPos = _cards[_frontIndex].initStackPos;
+    final count = _cards.length;
+    return (card.initStackPos - frontInitPos + count) % count;
+  }
+
+  List<_StackCard> get _sortedCards {
+    return List<_StackCard>.from(_cards)
+      ..sort((a, b) => _stackPosition(b).compareTo(_stackPosition(a)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppConfig().colors.backGroundColor,
+      body: KeyboardListener(
+        focusNode: _keyboardFocusNode,
+        autofocus: true,
+        onKeyEvent: (event) {
+          if (event is! KeyDownEvent || _isDismissing) return;
+
+          if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+            _bringPreviousCardForward();
+          } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+            _bringNextCardForward();
+          } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            _dismissFrontCard(_DismissDirection.up);
+          } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+            _dismissFrontCard(_DismissDirection.down);
+          }
+        },
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(AppConfig().dimens.medium),
+            child: Column(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        width: _stackWidth,
+                        height: _stackHeight,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          clipBehavior: Clip.none,
+                          children:
+                              _sortedCards.map(_buildStackedCard).toList(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      onPressed:
+                          _isDismissing ? null : _bringPreviousCardForward,
+                      icon: const Icon(Icons.arrow_back_ios_new),
+                      color: AppConfig().colors.primaryColor,
+                      iconSize: 32,
+                      tooltip: 'Previous card',
+                    ),
+                    Gap(AppConfig().dimens.medium),
+                    Column(
+                      children: [
+                        IconButton(
+                          onPressed: _isDismissing
+                              ? null
+                              : () => _dismissFrontCard(_DismissDirection.up),
+                          icon: const Icon(Icons.keyboard_arrow_up),
+                          color: AppConfig().colors.primaryColor,
+                          iconSize: 32,
+                          tooltip: 'I know this person',
+                        ),
+                        IconButton(
+                          onPressed: _isDismissing
+                              ? null
+                              : () => _dismissFrontCard(_DismissDirection.down),
+                          icon: const Icon(Icons.keyboard_arrow_down),
+                          color: AppConfig().colors.primaryColor,
+                          iconSize: 32,
+                          tooltip: 'Not interested',
+                        ),
+                      ],
+                    ),
+                    Gap(AppConfig().dimens.medium),
+                    IconButton(
+                      onPressed: _isDismissing ? null : _bringNextCardForward,
+                      icon: const Icon(Icons.arrow_forward_ios),
+                      color: AppConfig().colors.primaryColor,
+                      iconSize: 32,
+                      tooltip: 'Next card',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStackedCard(_StackCard card) {
+    final stackPos = _stackPosition(card);
+    final isFront = stackPos == 0;
+    final isDismissing = card.id == _dismissingCardId;
+    final cardWidth = isFront ? _cardWidth : _cardWidth * _behindWidthFactor;
+    final cardHeight =
+        isFront ? _cardHeight : _cardHeight * _behindHeightFactor;
+    final horizontalOffset =
+        (card.initStackPos - _centerCardIndex) * _horizontalStep;
+
+    final verticalDismiss = isDismissing
+        ? (_dismissDirection == _DismissDirection.up ? -1.4 : 1.4)
+        : 0.0;
+
+    final opacity = isDismissing ? 0.0 : (isFront ? 1.0 : 0.9);
+
+    return AnimatedOpacity(
+      key: ValueKey('card-${card.id}'),
+      opacity: opacity,
+      duration: _animationDuration,
+      curve: Curves.easeInOutCubic,
+      child: AnimatedSlide(
+        offset: Offset(horizontalOffset / cardWidth, verticalDismiss),
+        duration: _animationDuration,
+        curve: Curves.easeInOutCubic,
+        child: AnimatedContainer(
+          duration: _animationDuration,
+          curve: Curves.easeInOutCubic,
+          width: cardWidth,
+          height: cardHeight,
+          child: Card(
+            elevation: isFront ? 10.0 : 4.0,
+            shadowColor: Colors.black.withOpacity(0.2),
+            color: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: isFront
+                    ? card.color.withOpacity(0.55)
+                    : AppConfig().colors.lightGrayColor.withOpacity(0.4),
+                width: isFront ? 2 : 1,
+              ),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: EdgeInsets.all(AppConfig().dimens.medium),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: card.color,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  Gap(AppConfig().dimens.medium),
+                  Text(
+                    card.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: isFront ? 24 : 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppConfig().colors.txtHeaderColor,
+                    ),
+                  ),
+                  Gap(AppConfig().dimens.small),
+                  Expanded(
+                    child: Text(
+                      card.description.isNotEmpty
+                          ? card.description
+                          : 'No description',
+                      maxLines: isFront ? 8 : 5,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: isFront ? 15 : 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppConfig().colors.txtBodyColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

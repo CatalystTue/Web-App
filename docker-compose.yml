@@ -1,0 +1,19 @@
+services:
+  # Build only: output goes to ./build/web on your machine
+  build:
+    image: ghcr.io/cirruslabs/flutter:stable
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: >
+      sh -c "flutter pub get && flutter build web --release"
+
+  # Build image from Dockerfile and serve on http://localhost:8080
+  web:
+    build:
+      context: .
+      target: web
+    ports:
+      - "8080:80"
+    profiles:
+      - serve

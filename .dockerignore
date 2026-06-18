@@ -1,0 +1,13 @@
+.git
+.gitignore
+.idea
+.vscode
+.cursor
+build/
+.dart_tool
+.packages
+*.iml
+*.log
+Dockerfile
+docker-compose.yml
+README.md

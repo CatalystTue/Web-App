@@ -32,6 +32,20 @@ class _StackCard {
   }
 }
 
+class _StackSnapshot {
+  final List<_StackCard> cards;
+  final List<StackUserModel> userPool;
+  final int frontIndex;
+  final int nextCardId;
+
+  const _StackSnapshot({
+    required this.cards,
+    required this.userPool,
+    required this.frontIndex,
+    required this.nextCardId,
+  });
+}
+
 class StackedCardsScreen extends StatefulWidget {
   final List<StackUserModel> users;
 
@@ -41,10 +55,10 @@ class StackedCardsScreen extends StatefulWidget {
   });
 
   @override
-  State<StackedCardsScreen> createState() => _StackedCardsScreenState();
+  State<StackedCardsScreen> createState() => StackedCardsScreenState();
 }
 
-class _StackedCardsScreenState extends State<StackedCardsScreen> {
+class StackedCardsScreenState extends State<StackedCardsScreen> {
   static const int _visibleCardCount = 5;
   static const Duration _animationDuration = Duration(milliseconds: 500);
   static const double _cardWidth = 260;
@@ -74,7 +88,22 @@ class _StackedCardsScreenState extends State<StackedCardsScreen> {
   int? _dismissingCardId;
   _DismissDirection? _dismissDirection;
   bool _isDismissing = false;
+  final List<_StackSnapshot> _undoHistory = [];
   final FocusNode _keyboardFocusNode = FocusNode();
+
+  bool get canUndo => _undoHistory.isNotEmpty && !_isDismissing;
+
+  void undoLastDismiss() {
+    if (!canUndo) return;
+
+    final snapshot = _undoHistory.removeLast();
+    setState(() {
+      _cards = List<_StackCard>.from(snapshot.cards);
+      _userPool = List<StackUserModel>.from(snapshot.userPool);
+      _frontIndex = snapshot.frontIndex;
+      _nextCardId = snapshot.nextCardId;
+    });
+  }
 
   @override
   void initState() {
@@ -175,6 +204,12 @@ class _StackedCardsScreenState extends State<StackedCardsScreen> {
     if (!mounted) return;
 
     setState(() {
+      _undoHistory.add(_StackSnapshot(
+        cards: List<_StackCard>.from(_cards),
+        userPool: List<StackUserModel>.from(_userPool),
+        frontIndex: _frontIndex,
+        nextCardId: _nextCardId,
+      ));
       _applyDismiss(frontCard);
       _dismissingCardId = null;
       _dismissDirection = null;

@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class AppBaseView extends GetView<BaseViewModel> {
-  const AppBaseView({super.key});
+  AppBaseView({super.key});
+
+  final _stackedCardsKey = GlobalKey<StackedCardsScreenState>();
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +21,10 @@ class AppBaseView extends GetView<BaseViewModel> {
             SafeArea(
               child: controller.isLoadingStackUsers
                   ? const Center(child: CircularProgressIndicator())
-                  : StackedCardsScreen(users: controller.stackUsers),
+                  : StackedCardsScreen(
+                      key: _stackedCardsKey,
+                      users: controller.stackUsers,
+                    ),
             ),
             SafeArea(
               child: Align(
@@ -35,6 +40,24 @@ class AppBaseView extends GetView<BaseViewModel> {
                     tooltip: 'Settings',
                     onPressed: () =>
                         Get.toNamed(AppConfig().routes.settings),
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topRight,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: AppConfig().dimens.medium,
+                    top: AppConfig().dimens.small,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.undo),
+                    color: Colors.black,
+                    tooltip: 'Undo',
+                    onPressed: () =>
+                        _stackedCardsKey.currentState?.undoLastDismiss(),
                   ),
                 ),
               ),

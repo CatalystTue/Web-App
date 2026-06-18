@@ -51,7 +51,7 @@ class AppRoutes {
       GetPage(
         name: base,
         binding: BaseBinding(),
-        page: () => const AppBaseView(),
+        page: () => AppBaseView(),
       ),
       GetPage(
         name: register,

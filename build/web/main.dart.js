@@ -48454,7 +48454,7 @@ k=o.ax
 $.b5()
 i=k
 s=6
-return A.B(new A.qs("https://app.catalyst-app.org/:/api/v1").yp(),$async$CL)
+return A.B(new A.qs("https://server.catalyst-app.org/api/v1").yp(),$async$CL)
 case 6:i.b=b
 A.hz().$1("[Base] Loaded "+J.bv(o.ax.b)+" users from users/me")
 q=1
@@ -48520,7 +48520,7 @@ a9(){var s,r=A.cv(["All Users"],t.N),q=new A.e2(Date.now(),0,!1)
 q=A.cZ(A.bE(q),A.c1(q),A.dU(q))
 s=$.aj()
 $.b5()
-return new A.H2(B.aZ,B.aZ,B.aZ,B.fv,r,q,new A.dL(B.aD,s),new A.dL(B.aD,s),new A.kM("https://app.catalyst-app.org/:/api/v1"))}}
+return new A.H2(B.aZ,B.aZ,B.aZ,B.fv,r,q,new A.dL(B.aD,s),new A.dL(B.aD,s),new A.kM("https://server.catalyst-app.org/api/v1"))}}
 A.H2.prototype={
 oP(){var s=0,r=A.G(t.H),q,p=this,o,n,m,l,k,j
 var $async$oP=A.H(function(a,b){if(a===1)return A.D(b,r)
@@ -49273,7 +49273,7 @@ A.a63.prototype={
 $0(){var s,r=$.aj(),q=A.jn(!1)
 $.b5()
 s=t.Wo
-s=new A.kI(new A.dL(B.aD,r),new A.dL(B.aD,r),q,new A.kM("https://app.catalyst-app.org/:/api/v1"),A.b([],t.d),A.dj(null,null,null,t.X,t.xW),new A.d8(s),new A.d8(s),!1,!1)
+s=new A.kI(new A.dL(B.aD,r),new A.dL(B.aD,r),q,new A.kM("https://server.catalyst-app.org/api/v1"),A.b([],t.d),A.dj(null,null,null,t.X,t.xW),new A.d8(s),new A.d8(s),!1,!1)
 s.iJ()
 return s},
 $S:397}
@@ -49439,7 +49439,7 @@ $0(){var s,r
 $.b5()
 s=$.aj()
 r=t.Wo
-r=new A.kL(new A.a6Z(new A.kM("https://app.catalyst-app.org/:/api/v1")),new A.dL(B.aD,s),new A.dL(B.aD,s),A.jn(!0),A.jn(!1),A.b([],t.d),A.dj(null,null,null,t.X,t.xW),new A.d8(r),new A.d8(r),!1,!1)
+r=new A.kL(new A.a6Z(new A.kM("https://server.catalyst-app.org/api/v1")),new A.dL(B.aD,s),new A.dL(B.aD,s),A.jn(!0),A.jn(!1),A.b([],t.d),A.dj(null,null,null,t.X,t.xW),new A.d8(r),new A.d8(r),!1,!1)
 r.iJ()
 return r},
 $S:404}
@@ -49479,7 +49479,7 @@ j1(a,b,c,d){return this.auY(a,b,c,d)},
 auY(a,b,c,d){var s=0,r=A.G(t.H),q
 var $async$j1=A.H(function(e,f){if(e===1)return A.D(f,r)
 for(;;)switch(s){case 0:$.b5()
-q=new A.qs("https://app.catalyst-app.org/:/api/v1").j1(a,b,c,d)
+q=new A.qs("https://server.catalyst-app.org/api/v1").j1(a,b,c,d)
 s=1
 break
 case 1:return A.E(q,r)}})
@@ -49611,7 +49611,7 @@ for(;;)switch(s){case 0:q.ax===$&&A.a()
 $.b5()
 p=q.ay
 s=2
-return A.B(new A.qs("https://app.catalyst-app.org/:/api/v1").kU(),$async$kU)
+return A.B(new A.qs("https://server.catalyst-app.org/api/v1").kU(),$async$kU)
 case 2:p.sm(0,b)
 return A.E(null,r)}})
 return A.F($async$kU,r)},
@@ -49624,7 +49624,7 @@ q.cQ(0)
 q.ax===$&&A.a()
 $.b5()
 s=2
-return A.B(new A.qs("https://app.catalyst-app.org/:/api/v1").mk(a),$async$mk)
+return A.B(new A.qs("https://server.catalyst-app.org/api/v1").mk(a),$async$mk)
 case 2:p=q.ay
 o=p.ex$
 o===$&&A.a()
@@ -49725,7 +49725,7 @@ A.afH.prototype={
 $0(){var s,r=$.aj(),q=A.T8(A.b([],t.os),t.dR),p=A.T8(A.b([],t.s),t.N),o=A.jn(!1),n=A.jn(!1)
 $.b5()
 s=t.Wo
-s=new A.l8(new A.dL(B.aD,r),new A.dL(B.aD,r),new A.dL(B.aD,r),q,p,o,n,new A.kM("https://app.catalyst-app.org/:/api/v1"),A.b([],t.d),A.dj(null,null,null,t.X,t.xW),new A.d8(s),new A.d8(s),!1,!1)
+s=new A.l8(new A.dL(B.aD,r),new A.dL(B.aD,r),new A.dL(B.aD,r),q,p,o,n,new A.kM("https://server.catalyst-app.org/api/v1"),A.b([],t.d),A.dj(null,null,null,t.X,t.xW),new A.d8(s),new A.d8(s),!1,!1)
 s.iJ()
 return s},
 $S:420}
@@ -50023,7 +50023,7 @@ A.am9.prototype={
 $0(){var s,r=$.aj(),q=A.jn(!1)
 $.b5()
 s=t.Wo
-s=new A.lr(new A.dL(B.aD,r),q,new A.kM("https://app.catalyst-app.org/:/api/v1"),A.b([],t.d),A.dj(null,null,null,t.X,t.xW),new A.d8(s),new A.d8(s),!1,!1)
+s=new A.lr(new A.dL(B.aD,r),q,new A.kM("https://server.catalyst-app.org/api/v1"),A.b([],t.d),A.dj(null,null,null,t.X,t.xW),new A.d8(s),new A.d8(s),!1,!1)
 s.iJ()
 return s},
 $S:451}
@@ -50094,7 +50094,7 @@ A.amc.prototype={
 $0(){var s,r=$.aj(),q=A.jn(!1),p=A.jn(!1),o=A.jn(!0)
 $.b5()
 s=t.Wo
-s=new A.lt(new A.dL(B.aD,r),new A.dL(B.aD,r),new A.dL(B.aD,r),new A.dL(B.aD,r),new A.dL(B.aD,r),q,p,o,new A.kM("https://app.catalyst-app.org/:/api/v1"),A.b([],t.d),A.dj(null,null,null,t.X,t.xW),new A.d8(s),new A.d8(s),!1,!1)
+s=new A.lt(new A.dL(B.aD,r),new A.dL(B.aD,r),new A.dL(B.aD,r),new A.dL(B.aD,r),new A.dL(B.aD,r),q,p,o,new A.kM("https://server.catalyst-app.org/api/v1"),A.b([],t.d),A.dj(null,null,null,t.X,t.xW),new A.d8(s),new A.d8(s),!1,!1)
 s.iJ()
 return s},
 $S:452}
@@ -50256,7 +50256,7 @@ $S:0}
 A.tl.prototype={
 a9(){$.b5()
 var s=$.aj()
-return new A.JL(new A.kM("https://app.catalyst-app.org/:/api/v1"),new A.dL(B.aD,s),new A.dL(B.aD,s))}}
+return new A.JL(new A.kM("https://server.catalyst-app.org/api/v1"),new A.dL(B.aD,s),new A.dL(B.aD,s))}}
 A.JL.prototype={
 al(){this.aF()
 this.Bk()},
@@ -50616,7 +50616,7 @@ yt(){var s=0,r=A.G(t.cs),q
 var $async$yt=A.H(function(a,b){if(a===1)return A.D(b,r)
 for(;;)switch(s){case 0:$.b5()
 s=3
-return A.B(new A.qs("https://app.catalyst-app.org/:/api/v1").ys(),$async$yt)
+return A.B(new A.qs("https://server.catalyst-app.org/api/v1").ys(),$async$yt)
 case 3:q=b
 s=1
 break
@@ -50643,7 +50643,7 @@ ob(){this.z2()
 this.B8()}}
 A.tY.prototype={
 a9(){$.b5()
-return new A.a3H(new A.kM("https://app.catalyst-app.org/:/api/v1"))}}
+return new A.a3H(new A.kM("https://server.catalyst-app.org/api/v1"))}}
 A.a3H.prototype={
 al(){this.aF()
 this.Bl()},

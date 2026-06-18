@@ -52,12 +52,24 @@ class AppBaseView extends GetView<BaseViewModel> {
                     right: AppConfig().dimens.medium,
                     top: AppConfig().dimens.small,
                   ),
-                  child: IconButton(
-                    icon: const Icon(Icons.undo),
-                    color: Colors.black,
-                    tooltip: 'Undo',
-                    onPressed: () =>
-                        _stackedCardsKey.currentState?.undoLastDismiss(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.undo),
+                        color: Colors.black,
+                        tooltip: 'Undo',
+                        onPressed: () =>
+                            _stackedCardsKey.currentState?.undoLastDismiss(),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.lightbulb_outline_rounded),
+                        color: Colors.black,
+                        tooltip: 'My Ideas',
+                        onPressed: () =>
+                            Get.toNamed(AppConfig().routes.ideaCard),
+                      ),
+                    ],
                   ),
                 ),
               ),

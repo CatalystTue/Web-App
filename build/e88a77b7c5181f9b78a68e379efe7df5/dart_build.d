@@ -1,0 +1,1 @@
+ /Users/amin/Catalyst/catalyst-flutter-app-main/build/e88a77b7c5181f9b78a68e379efe7df5/dart_build_result.json:  /Users/amin/Catalyst/catalyst-flutter-app-main/.dart_tool/package_config.json /Users/amin/Catalyst/catalyst-flutter-app-main/pubspec.yaml /opt/homebrew/share/flutter/bin/cache/dart-sdk/version

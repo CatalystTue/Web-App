@@ -396,6 +396,7 @@ class AuthenticationService extends ServicesHelper {
       '$baseURL/llm/',
       serviceType: ServiceType.post,
       requiredDefaultHeader: true,
+      timeoutSeconds: timeoutLlm,
       body: {
         'keywords': keywords,
       },

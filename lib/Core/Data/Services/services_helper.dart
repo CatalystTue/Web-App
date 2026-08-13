@@ -13,6 +13,7 @@ class ServicesHelper {
   final String baseURL = AppConfig().baseURL;
   final int pageSize = 50;
   final int timeout = 5;
+  final int timeoutLlm = 30;
 
   Map<String, String> get defaultHeaders => {
         'Content-Type': 'application/json',
@@ -39,6 +40,7 @@ class ServicesHelper {
     Map<String, String>? headers,
     bool requiredDefaultHeader = false,
     bool formUrlEncoded = false,
+    int? timeoutSeconds,
   }) async {
     final uri = Uri.parse(url);
 
@@ -60,7 +62,7 @@ class ServicesHelper {
 
       final client = http.Client();
 
-      final durationTimeOut = Duration(seconds: timeout);
+      final durationTimeOut = Duration(seconds: timeoutSeconds ?? timeout);
 
       switch (serviceType) {
         case ServiceType.post:
@@ -94,7 +96,9 @@ class ServicesHelper {
               serviceType: serviceType,
               body: body,
               headers: headers,
-              requiredDefaultHeader: requiredDefaultHeader));
+              requiredDefaultHeader: requiredDefaultHeader,
+              formUrlEncoded: formUrlEncoded,
+              timeoutSeconds: timeoutSeconds));
     } on TimeoutException catch (_) {
       debugPrint('Connection timeout');
       return null;

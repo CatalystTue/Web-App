@@ -361,7 +361,7 @@ class AuthenticationService extends ServicesHelper {
 
   Future<List<Map<String, dynamic>>> searchAffliation(String value) async {
     final response = await request(
-      '$baseURL/affliation',
+      '$baseURL/affliation/',
       serviceType: ServiceType.post,
       requiredDefaultHeader: false,
       body: {
@@ -393,7 +393,7 @@ class AuthenticationService extends ServicesHelper {
   Future<Map<String, String>?> getLlmKeywordSuggestions(
       List<String> keywords) async {
     final response = await request(
-      '$baseURL/llm',
+      '$baseURL/llm/',
       serviceType: ServiceType.post,
       requiredDefaultHeader: true,
       body: {

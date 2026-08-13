@@ -48018,7 +48018,7 @@ yC(a){return this.a4J(a)},
 a4J(a){var s=0,r=A.G(t.b5),q,p=this,o,n,m,l,k,j
 var $async$yC=A.H(function(b,c){if(b===1)return A.D(c,r)
 for(;;)switch(s){case 0:s=3
-return A.B(p.kb(0,p.a+"/affliation",A.aq(["affliation",a],t.N,t.z),!1,B.cp),$async$yC)
+return A.B(p.kb(0,p.a+"/affliation/",A.aq(["affliation",a],t.N,t.z),!1,B.cp),$async$yC)
 case 3:k=c
 j=t.j
 if(j.b(k)){j=J.a5I(k,t.f)
@@ -48046,7 +48046,7 @@ a49(a){var s=0,r=A.G(t.Px),q,p=this,o,n,m,l,k,j
 var $async$ym=A.H(function(b,c){if(b===1)return A.D(c,r)
 for(;;)switch(s){case 0:k=t.N
 s=3
-return A.B(p.kb(0,p.a+"/llm",A.aq(["keywords",a],k,t.z),!0,B.cp),$async$ym)
+return A.B(p.kb(0,p.a+"/llm/",A.aq(["keywords",a],k,t.z),!0,B.cp),$async$ym)
 case 3:j=c
 if(t.P.b(j)){o=J.aF(j)
 n=o.i(j,"string1")

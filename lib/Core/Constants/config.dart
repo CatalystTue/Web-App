@@ -8,7 +8,10 @@ class AppConfig {
   factory AppConfig() => _singleton;
   AppConfig._internal();
 
-  String get baseURL => "https://server.catalyst-app.org/api/v1";
+  String get baseURL => const String.fromEnvironment(
+        'API_BASE_URL',
+        defaultValue: 'https://server.catalyst-app.org/api/v1',
+      );
 
   final routes = AppRoutes();
   final dimens = Dimens();

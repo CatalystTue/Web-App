@@ -91,7 +91,8 @@ class AppRepo {
   Future<bool> loginUser(Map<String, dynamic> response) async {
     /* Update localCache based on Server data */
     user = User.fromJson(response);
-    jwtToken = user!.token;
+    jwtToken =
+        response['access_token']?.toString() ?? response['token']?.toString();
 
     // await secureLocalCache.write(
     //   AppConfig().localSecureCacheKeys.userObject,

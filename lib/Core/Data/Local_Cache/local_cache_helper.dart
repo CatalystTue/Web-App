@@ -16,6 +16,10 @@ class LocalCacheHelper {
     return storage.read<T>(key);
   }
 
+  Future<void> remove(String key) async {
+    await storage.remove(key);
+  }
+
   Future<void> clear() async {
     await storage.erase();
   }

@@ -1,5 +1,7 @@
 import 'package:catalyst_flutter_app/Core/Components/buttons_widgets.dart';
 import 'package:catalyst_flutter_app/Core/Constants/config.dart';
+import 'package:catalyst_flutter_app/Core/Data/Services/auth_service.dart';
+import 'package:catalyst_flutter_app/app_repo.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -15,12 +17,53 @@ class _LlmChoiceScreenState extends State<LlmChoiceScreen> {
 
   int? _selectedIndex;
   bool _isEditStep = false;
+  bool _submitting = false;
   final TextEditingController _chosenTextCtrl = TextEditingController();
 
   @override
   void dispose() {
     _chosenTextCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _finalizeProfile() async {
+    final description = _chosenTextCtrl.text.trim();
+    if (description.isEmpty) {
+      AppRepo().showSnackbar(
+        label: 'Error',
+        text: 'Please write a description before continuing.',
+        position: SnackPosition.TOP,
+      );
+      return;
+    }
+
+    final cache = AppRepo().localCache;
+    final keys = AppConfig().localCacheKeys;
+    await cache.write(keys.profileDescription, description);
+
+    setState(() => _submitting = true);
+    final result = await AuthenticationService().updateProfile(
+      affliation: cache.read<String>(keys.profileAffliation),
+      position: cache.read<String>(keys.profileCareerStage),
+      description: cache.read<String>(keys.profileDescription),
+    );
+    if (!mounted) return;
+    setState(() => _submitting = false);
+
+    if (result == null) {
+      AppRepo().showSnackbar(
+        label: 'Error',
+        text: 'Could not save your profile. Please try again.',
+        position: SnackPosition.TOP,
+      );
+      return;
+    }
+
+    await cache.remove(keys.profileAffliation);
+    await cache.remove(keys.profileCareerStage);
+    await cache.remove(keys.profileDescription);
+
+    Get.offAllNamed(AppConfig().routes.base);
   }
 
   @override
@@ -129,8 +172,12 @@ class _LlmChoiceScreenState extends State<LlmChoiceScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           CustomIconButton(
-            title: _isEditStep ? 'Continue' : 'Continue and Edit',
-            onTap: !_isEditStep && _selectedIndex == null
+            title: _submitting
+                ? 'Saving...'
+                : _isEditStep
+                    ? 'Continue'
+                    : 'Continue and Edit',
+            onTap: _submitting || (!_isEditStep && _selectedIndex == null)
                 ? null
                 : () {
                     if (!_isEditStep) {
@@ -141,7 +188,7 @@ class _LlmChoiceScreenState extends State<LlmChoiceScreen> {
                       });
                       return;
                     }
-                    Get.offAllNamed(AppConfig().routes.base);
+                    _finalizeProfile();
                   },
             txtColor: Colors.white,
             color: AppConfig().colors.primaryColor,

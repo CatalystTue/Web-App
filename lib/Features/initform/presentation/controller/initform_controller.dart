@@ -73,6 +73,16 @@ class InitFormController extends GetxController {
     keywordsCtrl.clear();
   }
 
+  // Held locally until the description is picked, then sent to the backend in
+  // one request from the LLM choice screen.
+  Future<void> cacheAffliationAndCareerStage() async {
+    final cache = AppRepo().localCache;
+    final keys = AppConfig().localCacheKeys;
+
+    await cache.write(keys.profileAffliation, affliationCtrl.text.trim());
+    await cache.write(keys.profileCareerStage, positionCtrl.text.trim());
+  }
+
   void removeKeyword(String value) {
     selectedKeywords.remove(value);
   }
@@ -95,6 +105,7 @@ class InitFormController extends GetxController {
     }
 
     submitting.value = true;
+    await cacheAffliationAndCareerStage();
     final result =
         await _authService.getLlmKeywordSuggestions(selectedKeywords.toList());
     submitting.value = false;

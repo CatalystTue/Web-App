@@ -416,6 +416,35 @@ class AuthenticationService extends ServicesHelper {
     return null;
   }
 
+  Future<Map<String, dynamic>?> updateProfile({
+    String? affliation,
+    String? position,
+    String? description,
+  }) async {
+    final Map<String, dynamic> data = {};
+    // Omitted fields are left untouched by the backend, so never send blanks.
+    if (affliation != null && affliation.isNotEmpty) {
+      data['affliation'] = affliation;
+    }
+    if (position != null && position.isNotEmpty) {
+      data['position'] = position;
+    }
+    if (description != null && description.isNotEmpty) {
+      data['description'] = description;
+    }
+
+    if (data.isEmpty) return null;
+
+    final response = await request(
+      '$baseURL/users/update_user',
+      serviceType: ServiceType.put,
+      requiredDefaultHeader: true,
+      body: data,
+    );
+
+    return response is Map<String, dynamic> ? response : null;
+  }
+
   Future<Map<String, dynamic>?> verifyEmailToken(String token) async {
     final response = await request(
       '$baseURL/verify',

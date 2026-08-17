@@ -201,14 +201,37 @@ class ServicesHelper {
     } else {
       AppRepo().hideLoading();
 
-      final message = jsonDecode(response.body);
+      Map<String, dynamic> message;
 
-      if (message['message'] is List<dynamic>) {
-        Get.snackbar(
-            message['error'] ?? '', (message['message'].join('\n')) ?? '');
-      } else {
-        Get.snackbar(message['error'] ?? '', message['message'] ?? '');
+      try {
+        message = Map<String, dynamic>.from(jsonDecode(response.body));
+      } catch (_) {
+        message = {
+          'detail': 'Request failed with status ${response.statusCode}',
+        };
       }
+
+      final detail = message['detail'];
+
+      String errorText;
+      if (detail is List) {
+        errorText = detail.map((item) {
+          if (item is Map && item['msg'] != null) {
+            return item['msg'].toString();
+          }
+          return item.toString();
+        }).join('\n');
+      } else {
+        errorText = detail?.toString() ??
+            message['message']?.toString() ??
+            'The request could not be completed.';
+      }
+
+      AppRepo().showSnackbar(
+        label: 'Error',
+        text: errorText,
+        position: SnackPosition.TOP,
+      );
 
       debugPrint('Error: $message');
       return message;

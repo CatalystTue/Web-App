@@ -69,13 +69,8 @@ class RegisterController extends GetxController {
     );
 
     if (response != null) {
-      if (response['detail'] != null &&
-          response['detail'].contains('already exists')) {
-        AppRepo().showSnackbar(
-          label: 'Error',
-          text: 'A user with this email already exists.',
-          position: SnackPosition.TOP,
-        );
+      if (response['detail'] != null) {
+        // ServicesHelper already displayed the backend error.
       } else {
         print('Registration successful: $response');
         loading.value = false;
@@ -84,13 +79,13 @@ class RegisterController extends GetxController {
         return;
       }
     } else {
-      print('Registration failed');
       AppRepo().showSnackbar(
         label: 'Error',
         text: 'Registration failed. Please try again.',
         position: SnackPosition.TOP,
       );
     }
+
     loading.value = false;
   }
 

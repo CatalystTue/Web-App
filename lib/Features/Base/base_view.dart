@@ -24,6 +24,8 @@ class AppBaseView extends GetView<BaseViewModel> {
                   : StackedCardsScreen(
                       key: _stackedCardsKey,
                       users: controller.stackUsers,
+                      onCardHearted: controller.saveIdea,
+                      onCardUnhearted: controller.removeSavedIdea,
                     ),
             ),
             SafeArea(
@@ -66,7 +68,7 @@ class AppBaseView extends GetView<BaseViewModel> {
                         icon: const Icon(Icons.lightbulb_outline_rounded),
                         color: Colors.black,
                         tooltip: 'Saved Ideas',
-                        onPressed: () {},
+                        onPressed: () => _showSavedIdeas(context),
                       ),
                     ],
                   ),
@@ -74,6 +76,55 @@ class AppBaseView extends GetView<BaseViewModel> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showSavedIdeas(BuildContext context) {
+    final savedIdeas = controller.savedIdeas;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppConfig().colors.backGroundColor,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(AppConfig().dimens.medium),
+          child: savedIdeas.isEmpty
+              ? const SizedBox(
+                  height: 160,
+                  child: Center(
+                    child: Text('No saved ideas yet. Heart a card to save it.'),
+                  ),
+                )
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Saved Ideas',
+                        style: TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    Flexible(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: savedIdeas.length,
+                        separatorBuilder: (_, __) => const Divider(),
+                        itemBuilder: (_, index) {
+                          final idea = savedIdeas[index];
+                          return ListTile(
+                            leading: Icon(Icons.favorite,
+                                color: AppConfig().colors.redColor),
+                            title: Text(idea.name),
+                            subtitle: idea.description.isEmpty
+                                ? null
+                                : Text(idea.description),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
         ),
       ),
     );

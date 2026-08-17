@@ -12,6 +12,9 @@ class _StackCard {
   final Color color;
   final String name;
   final String description;
+  final String affiliation;
+  final String position;
+  final StackUserModel user;
 
   _StackCard({
     required this.id,
@@ -19,6 +22,9 @@ class _StackCard {
     required this.color,
     required this.name,
     required this.description,
+    required this.affiliation,
+    required this.position,
+    required this.user,
   });
 
   _StackCard copyWith({int? initStackPos}) {
@@ -28,6 +34,9 @@ class _StackCard {
       color: color,
       name: name,
       description: description,
+      affiliation: affiliation,
+      position: position,
+      user: user,
     );
   }
 }
@@ -38,6 +47,7 @@ class _StackSnapshot {
   final int frontIndex;
   final int nextCardId;
   final Set<int> markedCardIds;
+  final StackUserModel? savedIdea;
 
   const _StackSnapshot({
     required this.cards,
@@ -45,15 +55,20 @@ class _StackSnapshot {
     required this.frontIndex,
     required this.nextCardId,
     required this.markedCardIds,
+    this.savedIdea,
   });
 }
 
 class StackedCardsScreen extends StatefulWidget {
   final List<StackUserModel> users;
+  final ValueChanged<StackUserModel>? onCardHearted;
+  final ValueChanged<StackUserModel>? onCardUnhearted;
 
   const StackedCardsScreen({
     super.key,
     required this.users,
+    this.onCardHearted,
+    this.onCardUnhearted,
   });
 
   @override
@@ -99,6 +114,9 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     if (!canUndo) return;
 
     final snapshot = _undoHistory.removeLast();
+    if (snapshot.savedIdea != null) {
+      widget.onCardUnhearted?.call(snapshot.savedIdea!);
+    }
     setState(() {
       _cards = List<_StackCard>.from(snapshot.cards);
       _userPool = List<StackUserModel>.from(snapshot.userPool);
@@ -171,6 +189,9 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
       color: _cardColors[id % _cardColors.length],
       name: user.name.isNotEmpty ? user.name : 'Card ${id + 1}',
       description: user.description,
+      affiliation: user.affiliation,
+      position: user.position,
+      user: user,
     );
   }
 
@@ -181,6 +202,8 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     return StackUserModel(
       name: 'User ${_nextCardId + 1}',
       description: 'No more users in queue.',
+      affiliation: '',
+      position: '',
     );
   }
 
@@ -225,6 +248,8 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
 
     if (!mounted) return;
 
+    final wasHearted = direction == _DismissDirection.right &&
+        _markedCardIds.contains(card.id);
     setState(() {
       _undoHistory.add(_StackSnapshot(
         cards: List<_StackCard>.from(_cards),
@@ -232,12 +257,14 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
         frontIndex: _frontIndex,
         nextCardId: _nextCardId,
         markedCardIds: Set<int>.from(_markedCardIds),
+        savedIdea: wasHearted ? card.user : null,
       ));
       _applyDismiss(card);
       _dismissingCardId = null;
       _dismissDirection = null;
       _isDismissing = false;
     });
+    if (wasHearted) widget.onCardHearted?.call(card.user);
   }
 
   int _InittoIdx(int index) {
@@ -431,10 +458,10 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     final horizontalOffset =
         (card.initStackPos - _centerCardIndex) * _horizontalStep;
 
-    final horizontalDismiss = isDismissing &&
-            _dismissDirection == _DismissDirection.right
-        ? 1.4
-        : 0.0;
+    final horizontalDismiss =
+        isDismissing && _dismissDirection == _DismissDirection.right
+            ? 1.4
+            : 0.0;
 
     final verticalDismiss = isDismissing
         ? switch (_dismissDirection) {
@@ -513,20 +540,49 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
                 ),
                 Gap(AppConfig().dimens.small),
                 Expanded(
-                  child: Text(
-                    card.description.isNotEmpty
-                        ? card.description
-                        : 'No description',
-                    maxLines: 8,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppConfig().colors.txtBodyColor,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        card.affiliation.isNotEmpty
+                            ? card.affiliation
+                            : 'No affiliation',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppConfig().colors.txtBodyColor,
+                        ),
+                      ),
+                      Gap(AppConfig().dimens.small),
+                      Text(
+                        card.position.isNotEmpty
+                            ? card.position
+                            : 'No position',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppConfig().colors.txtBodyColor,
+                        ),
+                      ),
+                      Text(
+                        card.description.isNotEmpty
+                            ? card.description
+                            : 'No description',
+                        maxLines: 8,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppConfig().colors.txtBodyColor,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 32),
               ],
             ),
             Positioned(

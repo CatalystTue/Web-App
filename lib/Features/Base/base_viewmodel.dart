@@ -14,6 +14,7 @@ class BaseViewModel extends GetxController {
 
   BaseModel get model => _model;
   List<StackUserModel> get stackUsers => _model.stackUsers;
+  List<StackUserModel> get savedIdeas => _model.savedIdeas;
   bool get isLoadingStackUsers => _model.isLoadingStackUsers;
 
   @override
@@ -49,6 +50,19 @@ class BaseViewModel extends GetxController {
 
   void updateNavigationIndex(int index) {
     _model.updateNavigationIndex(index);
+    update();
+  }
+
+  void saveIdea(StackUserModel idea) {
+    if (_model.savedIdeas.any((saved) =>
+        saved.name == idea.name && saved.description == idea.description)) return;
+    _model.savedIdeas.add(idea);
+    update();
+  }
+
+  void removeSavedIdea(StackUserModel idea) {
+    _model.savedIdeas.removeWhere((saved) =>
+        saved.name == idea.name && saved.description == idea.description);
     update();
   }
 }

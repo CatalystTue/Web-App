@@ -6,5 +6,6 @@ class BaseModel {
   void updateNavigationIndex(int index) => _currentNavigationbarIndex = index;
 
   List<StackUserModel> stackUsers = [];
+  List<StackUserModel> savedIdeas = [];
   bool isLoadingStackUsers = false;
 }

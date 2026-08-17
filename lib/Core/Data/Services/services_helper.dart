@@ -186,13 +186,19 @@ class ServicesHelper {
       return jsonDecode(response.body);
       // Success
     } else if (response.statusCode == 401) {
-      final message = jsonDecode(response.body);
-      if (message['message'] is String &&
-          message['message'].contains('invalid csrf token')) {
-        return null;
-      }
+      final message = Map<String, dynamic>.from(jsonDecode(response.body));
 
-      return await originalRequest!();
+      final errorText = message['detail']?.toString() ??
+          message['message']?.toString() ??
+          'Invalid username or password';
+
+      AppRepo().showSnackbar(
+        label: 'Login failed',
+        text: errorText,
+        position: SnackPosition.TOP,
+      );
+
+      return null;
     } else if (response.statusCode == 429) {
       AppRepo().showSnackbar(
           label: 'Server',

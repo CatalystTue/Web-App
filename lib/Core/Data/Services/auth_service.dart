@@ -447,7 +447,7 @@ class AuthenticationService extends ServicesHelper {
 
   Future<Map<String, dynamic>?> verifyEmailToken(String token) async {
     final response = await request(
-      '$baseURL/verify',
+      '$baseURL/verify/',
       serviceType: ServiceType.put,
       requiredDefaultHeader: false,
       body: {
@@ -460,7 +460,7 @@ class AuthenticationService extends ServicesHelper {
 
   Future<Map<String, dynamic>?> validateResetToken(String token) async {
     final response = await request(
-      '$baseURL/verifytoken',
+      '$baseURL/verifytoken/',
       serviceType: ServiceType.put,
       requiredDefaultHeader: false,
       body: {
@@ -476,7 +476,7 @@ class AuthenticationService extends ServicesHelper {
     required String password,
   }) async {
     final response = await request(
-      '$baseURL/recover',
+      '$baseURL/recover/',
       serviceType: ServiceType.put,
       requiredDefaultHeader: false,
       body: {

@@ -113,6 +113,7 @@ class _LlmChoiceScreenState extends State<LlmChoiceScreen> {
                       expands: true,
                       maxLines: null,
                       minLines: null,
+                      textAlignVertical: TextAlignVertical.top,
                       keyboardType: TextInputType.multiline,
                       decoration: InputDecoration(
                         hintText: isCustomChoice ? _customOptionHint : null,

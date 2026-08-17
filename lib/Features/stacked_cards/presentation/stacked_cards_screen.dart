@@ -551,7 +551,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 15,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.bold,
                           color: AppConfig().colors.txtBodyColor,
                         ),
                       ),
@@ -564,20 +564,24 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 15,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.bold,
                           color: AppConfig().colors.txtBodyColor,
                         ),
                       ),
-                      Text(
-                        card.description.isNotEmpty
-                            ? card.description
-                            : 'No description',
-                        maxLines: 8,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppConfig().colors.txtBodyColor,
+                      Gap(AppConfig().dimens.small),
+                      Expanded(
+                        child: Scrollbar(
+                          child: SingleChildScrollView(
+                            child: Text(
+                              card.description.isNotEmpty
+                                  ? card.description
+                                  : 'No description',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: AppConfig().colors.txtBodyColor,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ],

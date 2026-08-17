@@ -42,7 +42,7 @@ class AuthenticationService extends ServicesHelper {
 
   Future<Map<String, dynamic>?> adminLogin(Map<String, dynamic> input) async {
     final response = await request(
-      '$baseURL/adminlogin',
+      '$baseURL/adminlogin/',
       serviceType: ServiceType.post,
       body: {
         "username": input["username"],
@@ -490,7 +490,7 @@ class AuthenticationService extends ServicesHelper {
 
   Future<Map<String, dynamic>?> sendResetPasswordEmail(String email) async {
     final response = await request(
-      '$baseURL/recover',
+      '$baseURL/recover/',
       serviceType: ServiceType.post,
       requiredDefaultHeader: false,
       body: {

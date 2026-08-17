@@ -47503,7 +47503,7 @@ BK(a){return this.asj(a)},
 asj(a){var s=0,r=A.F(t.nA),q,p=this
 var $async$BK=A.G(function(b,c){if(b===1)return A.C(c,r)
 for(;;)switch(s){case 0:s=3
-return A.y(p.ka(0,p.a+"/adminlogin",A.an(["username",a.i(0,"username"),"password",a.i(0,"password")],t.N,t.z),!1,B.cp),$async$BK)
+return A.y(p.ka(0,p.a+"/adminlogin/",A.an(["username",a.i(0,"username"),"password",a.i(0,"password")],t.N,t.z),!1,B.cp),$async$BK)
 case 3:q=c
 s=1
 break
@@ -47969,7 +47969,7 @@ yL(a){return this.a4V(a)},
 a4V(a){var s=0,r=A.F(t.nA),q,p=this
 var $async$yL=A.G(function(b,c){if(b===1)return A.C(c,r)
 for(;;)switch(s){case 0:s=3
-return A.y(p.ka(0,p.a+"/recover",A.an(["email",a],t.N,t.z),!1,B.cp),$async$yL)
+return A.y(p.ka(0,p.a+"/recover/",A.an(["email",a],t.N,t.z),!1,B.cp),$async$yL)
 case 3:q=c
 s=1
 break

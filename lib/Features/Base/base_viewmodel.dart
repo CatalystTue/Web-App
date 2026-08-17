@@ -37,7 +37,8 @@ class BaseViewModel extends GetxController {
 
     try {
       _model.stackUsers = await CardsService().getMeStackUsers();
-      debugPrint('[Base] Loaded ${_model.stackUsers.length} users from users/me');
+      debugPrint(
+          '[Base] Loaded ${_model.stackUsers.length} users from users/me');
     } catch (e, stackTrace) {
       debugPrint('[Base] Failed to load users/me: $e');
       debugPrint('$stackTrace');
@@ -55,7 +56,9 @@ class BaseViewModel extends GetxController {
 
   void saveIdea(StackUserModel idea) {
     if (_model.savedIdeas.any((saved) =>
-        saved.name == idea.name && saved.description == idea.description)) return;
+        saved.name == idea.name && saved.description == idea.description)) {
+      return;
+    }
     _model.savedIdeas.add(idea);
     update();
   }

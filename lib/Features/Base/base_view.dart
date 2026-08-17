@@ -40,8 +40,7 @@ class AppBaseView extends GetView<BaseViewModel> {
                     icon: const Icon(Icons.settings),
                     color: Colors.black,
                     tooltip: 'Settings',
-                    onPressed: () =>
-                        Get.toNamed(AppConfig().routes.settings),
+                    onPressed: () => Get.toNamed(AppConfig().routes.settings),
                   ),
                 ),
               ),

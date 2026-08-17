@@ -42,7 +42,7 @@ class InitFormController extends GetxController {
   void onAffliationChanged(String value) {
     _debounce?.cancel();
     final query = value.trim();
-    if (query.isEmpty) {
+    if (query.length < 3) {
       options.clear();
       return;
     }

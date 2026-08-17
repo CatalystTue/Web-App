@@ -231,7 +231,7 @@ class AuthenticationService extends ServicesHelper {
     required String htmlName,
     required List<String> groups,
   }) async {
-    final uri = Uri.parse('$baseURL/adminlogin/send-page-now');
+    final uri = Uri.parse('$baseURL/adminlogin/send-now-page');
     final body = jsonEncode(<String, dynamic>{
       'HTMLname': htmlName,
       'groups': groups,

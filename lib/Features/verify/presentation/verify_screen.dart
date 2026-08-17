@@ -1,4 +1,6 @@
 import 'package:catalyst_flutter_app/Core/Constants/config.dart';
+import 'package:catalyst_flutter_app/Core/Constants/color.dart';
+import 'package:catalyst_flutter_app/Core/Components/buttons_widgets.dart';
 import 'package:catalyst_flutter_app/Core/Data/Services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -63,42 +65,70 @@ class _VerifyScreenState extends State<VerifyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppConfig().colors.primaryColor,
+      backgroundColor: AppConfig().colors.backGroundColor,
       appBar: AppBar(
-        title: const Text('Email Verification'),
-        backgroundColor: AppConfig().colors.darkYellow,
-        foregroundColor: Colors.black,
+        title: const Text(
+          'Email Verification',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        backgroundColor: AppConfig().colors.backGroundColor,
+        foregroundColor: AppColors().secondaryColor,
+        elevation: 0,
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
+          constraints: const BoxConstraints(maxWidth: 440),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (_loading) ...[
-                  const CircularProgressIndicator(),
+                  CircularProgressIndicator(
+                    color: AppConfig().colors.primaryColor,
+                  ),
                   const SizedBox(height: 16),
                 ] else ...[
                   Icon(
                     _success ? Icons.check_circle : Icons.error,
-                    color: _success ? Colors.green : Colors.red,
+                    color: _success
+                        ? AppConfig().colors.greenColor
+                        : AppConfig().colors.redColor,
                     size: 56,
                   ),
                   const SizedBox(height: 16),
                 ],
                 Text(
+                  _loading
+                      ? 'Verifying email'
+                      : _success
+                          ? 'Email verified'
+                          : 'Verification failed',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
                   _message,
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleMedium,
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
-                const SizedBox(height: 24),
-                // if (!_loading)
-                //   ElevatedButton(
-                //     onPressed: () => Get.offAllNamed(AppConfig().routes.auth),
-                //     child: const Text('Go to Login'),
-                //   ),
+                if (!_loading) ...[
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: CustomIconButton(
+                      title: 'Go to login',
+                      onTap: () => Get.offAllNamed(AppConfig().routes.auth),
+                      txtColor: Colors.white,
+                      color: AppConfig().colors.primaryColor,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

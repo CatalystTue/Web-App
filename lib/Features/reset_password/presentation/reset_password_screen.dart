@@ -148,7 +148,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      backgroundColor: AppConfig().colors.primaryColor,
+      backgroundColor: AppConfig().colors.backGroundColor,
       appBar: AppBar(
         title: const Text(
           'Reset Password',
@@ -159,7 +159,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           ),
         ),
         foregroundColor: AppColors().secondaryColor,
-        backgroundColor: AppConfig().colors.darkYellow,
+        backgroundColor: AppConfig().colors.backGroundColor,
+        elevation: 0,
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -176,19 +177,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: AppConfig().colors.lightGrayColor,
+                            color: AppConfig().colors.txtColor,
                           ),
                         ),
                       ),
                       Gap(AppConfig().dimens.medium),
-                      Text(
-                        "Password: *",
-                        style: textTheme.titleMedium,
-                      ),
-                      Gap(AppConfig().dimens.small),
                       CustomTextField(
                         controller: _passwordCtrl,
-                        labelText: "Password",
+                        labelText: "Password *",
                         isPassword: true,
                         secondIcon: Icons.remove_red_eye,
                         validator: (value) {
@@ -202,14 +198,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         },
                       ),
                       Gap(AppConfig().dimens.medium),
-                      Text(
-                        "Re-enter Password: *",
-                        style: textTheme.titleMedium,
-                      ),
-                      Gap(AppConfig().dimens.small),
                       CustomTextField(
                         controller: _repeatPasswordCtrl,
-                        labelText: "Re-enter Password",
+                        labelText: "Re-enter password *",
                         isPassword: true,
                         secondIcon: Icons.remove_red_eye,
                         validator: (value) {

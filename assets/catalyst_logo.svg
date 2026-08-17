@@ -1,0 +1,55 @@
+<svg width="680" height="480" viewBox="0 0 680 480" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .accent1 { fill: #4F46E5; }
+    .accent2 { fill: #0EA5E9; }
+    .bond { stroke: #4F46E5; fill: none; stroke-width: 2.5; stroke-linecap: round; }
+    .bond2 { stroke: #0EA5E9; fill: none; stroke-width: 2.5; stroke-linecap: round; }
+    .bond-shared { stroke: #7C3AED; fill: none; stroke-width: 3; stroke-linecap: round; }
+    .node1 { fill: #4F46E5; }
+    .node2 { fill: #0EA5E9; }
+    .node-shared { fill: #7C3AED; }
+    .logo-text { fill: #1E1B4B; }
+    .tagline { fill: #6B7280; }
+    .spark { fill: #F59E0B; }
+  </style>
+
+  <g transform="translate(340, 185)">
+    <g transform="translate(-38, 0)">
+      <line x1="-50" y1="-30" x2="-20" y2="0" class="bond"/>
+      <line x1="-50" y1="30" x2="-20" y2="0" class="bond"/>
+      <line x1="-20" y1="0" x2="20" y2="0" class="bond"/>
+      <line x1="-80" y1="0" x2="-50" y2="-30" class="bond"/>
+      <line x1="-80" y1="0" x2="-50" y2="30" class="bond"/>
+      <circle cx="-80" cy="0" r="7" class="node1"/>
+      <circle cx="-50" cy="-30" r="6" class="node1"/>
+      <circle cx="-50" cy="30" r="6" class="node1"/>
+      <circle cx="-20" cy="0" r="7" class="node1"/>
+    </g>
+
+    <g transform="translate(38, 0)">
+      <line x1="50" y1="-30" x2="20" y2="0" class="bond2"/>
+      <line x1="50" y1="30" x2="20" y2="0" class="bond2"/>
+      <line x1="20" y1="0" x2="-20" y2="0" class="bond2"/>
+      <line x1="80" y1="0" x2="50" y2="-30" class="bond2"/>
+      <line x1="80" y1="0" x2="50" y2="30" class="bond2"/>
+      <circle cx="80" cy="0" r="7" class="node2"/>
+      <circle cx="50" cy="-30" r="6" class="node2"/>
+      <circle cx="50" cy="30" r="6" class="node2"/>
+      <circle cx="20" cy="0" r="7" class="node2"/>
+    </g>
+
+    <line x1="-18" y1="0" x2="18" y2="0" class="bond-shared" stroke-dasharray="0" stroke-width="3.5"/>
+    <circle cx="0" cy="0" r="9" class="node-shared"/>
+
+    <circle cx="-4" cy="-18" r="2" class="spark" opacity="0.9"/>
+    <circle cx="6" cy="-24" r="1.5" class="spark" opacity="0.7"/>
+    <circle cx="-8" cy="-26" r="1.5" class="spark" opacity="0.6"/>
+    <circle cx="1" cy="-32" r="1" class="spark" opacity="0.5"/>
+    <circle cx="10" cy="-16" r="1" class="spark" opacity="0.5"/>
+  </g>
+
+  <text x="340" y="310" text-anchor="middle" font-family="'Segoe UI', Arial, Helvetica, sans-serif" font-size="44" font-weight="500" letter-spacing="5" class="logo-text">CATALYST</text>
+
+  <text x="340" y="342" text-anchor="middle" font-family="'Segoe UI', Arial, Helvetica, sans-serif" font-size="13" font-weight="400" letter-spacing="4" class="tagline">RESEARCH MEETS COLLABORATION</text>
+
+</svg>

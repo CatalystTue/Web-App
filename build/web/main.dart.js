@@ -48439,7 +48439,7 @@ m=(m==null?$.V=B.m:m).aN(0,null,o).ax
 m===$&&A.a()
 n=m.c
 s=4
-return A.x(A.fT(a,!0).ly(A.b0E(null,B.Gu,!0,"Saved Ideas",!1,new A.a68(n),null,null,new A.a69(),B.kE,null,t.H)),$async$vv)
+return A.x(A.fT(a,!0).ly(A.b0E(null,B.Gu,!0,"Liked Users",!1,new A.a68(n),null,null,new A.a69(),B.kE,null,t.H)),$async$vv)
 case 4:case 1:return A.A(q,r)}})
 return A.B($async$vv,r)}}
 A.a6d.prototype={
@@ -48460,7 +48460,7 @@ p=$.V
 p=(p==null?$.V=B.m:p).aN(0,n,q).ga4G()
 o=$.V
 r=new A.po(r,p,(o==null?$.V=B.m:o).aN(0,n,q).gaBL(),s.e)}q=t.p
-return A.hY(n,B.V,A.iJ(B.bX,A.b([A.jx(!0,r,!0,B.a7,!0,!0),A.jx(!0,new A.cC(B.df,n,n,new A.aL(new A.ah(16,8,0,0),A.hg(B.l,n,n,B.Jc,n,n,new A.a6a(),n,n,n,"Settings"),n),n),!0,B.a7,!0,!0),A.jx(!0,new A.cC(B.dX,n,n,new A.aL(new A.ah(0,8,16,0),A.ce(A.b([A.hg(B.l,n,n,B.Jd,n,n,new A.a6b(s),n,n,n,"Undo"),A.hg(B.l,n,n,B.Je,n,n,new A.a6c(s,this.b),n,n,n,"Saved Ideas")],q),B.F,B.u,B.aQ),n),n),!0,B.a7,!0,!0)],q),B.G,B.bF,n),n,!1)},
+return A.hY(n,B.V,A.iJ(B.bX,A.b([A.jx(!0,r,!0,B.a7,!0,!0),A.jx(!0,new A.cC(B.df,n,n,new A.aL(new A.ah(16,8,0,0),A.hg(B.l,n,n,B.Jc,n,n,new A.a6a(),n,n,n,"Settings"),n),n),!0,B.a7,!0,!0),A.jx(!0,new A.cC(B.dX,n,n,new A.aL(new A.ah(0,8,16,0),A.ce(A.b([A.hg(B.l,n,n,B.Jd,n,n,new A.a6b(s),n,n,n,"Undo"),A.hg(B.l,n,n,B.Je,n,n,new A.a6c(s,this.b),n,n,n,"Liked Users")],q),B.F,B.u,B.aQ),n),n),!0,B.a7,!0,!0)],q),B.G,B.bF,n),n,!1)},
 $S:377}
 A.a6a.prototype={
 $0(){var s=$.bl()
@@ -48544,7 +48544,7 @@ i=l
 s=6
 return A.x(new A.kT("https://server.catalyst-app.org/api/v1").yx(),$async$wH)
 case 6:i.c=b
-A.fn().$1("[Base] Loaded "+J.bv(o.ax.c)+" saved ideas")
+A.fn().$1("[Base] Loaded "+J.bv(o.ax.c)+" liked users")
 q=1
 s=5
 break
@@ -48552,7 +48552,7 @@ case 3:q=2
 j=p.pop()
 n=A.aD(j)
 m=A.b7(j)
-A.fn().$1("[Base] Failed to load saved ideas: "+A.m(n))
+A.fn().$1("[Base] Failed to load liked users: "+A.m(n))
 A.fn().$1(A.m(m))
 s=5
 break
@@ -48984,9 +48984,9 @@ m.push(B.h5)
 o=a.k3
 i=a.id?a0:new A.au1(a)
 h=t.N
-m.push(A.aJW(B.a7,!0,o,i,B.ZD,"now",h))
+m.push(A.aJW(B.a7,!0,o,i,B.ZC,"now",h))
 i=a.k3
-m.push(A.aJW(B.a7,!0,i,a.id?a0:new A.au2(a),B.ZE,"schedule",h))
+m.push(A.aJW(B.a7,!0,i,a.id?a0:new A.au2(a),B.ZD,"schedule",h))
 if(a.k3==="schedule"){s=s.x
 o=A.aJ("Pick a date",a0,a0,a0,s,a0,a0)
 $.aX()
@@ -49012,7 +49012,7 @@ return A.iI(A.ce(m,B.al,B.u,B.E),B.ch,a0,B.X)},
 H(a){var s,r,q,p,o,n,m,l,k,j,i=this,h=null,g=A.b7E("admin_name")
 if(g==null)g="Admin"
 $.aX()
-s=A.k_(B.V,h,B.l,B.ZA)
+s=A.k_(B.V,h,B.l,B.Zz)
 r=A.ad(64,B.T.t()>>>16&255,B.T.t()>>>8&255,B.T.t()&255)
 q=t.p
 p=A.b([new A.aL(B.Ib,A.aJ("Menu",h,h,h,A.O(a).ok.w,h,h),h)],q)
@@ -49214,7 +49214,7 @@ $0(){this.a.x=!1},
 $S:0}
 A.auC.prototype={
 $1(a){var s=null,r=A.aJ('Are you sure you want to permanently remove "'+this.a+'"?',s,s,s,s,s,s)
-return A.aMB(A.b([A.y2(B.BX,new A.auA(a),s),A.BU(B.BV,new A.auB(a),A.P2(s,s,B.wp,s,s,s,s,s,s,B.i,s,s,s,s,s,s,s,s,s,s))],t.p),r,B.ZI)},
+return A.aMB(A.b([A.y2(B.BX,new A.auA(a),s),A.BU(B.BV,new A.auB(a),A.P2(s,s,B.wp,s,s,s,s,s,s,B.i,s,s,s,s,s,s,s,s,s,s))],t.p),r,B.ZH)},
 $S:228}
 A.auA.prototype={
 $0(){return A.fT(this.a,!1).oc(!1)},
@@ -49447,7 +49447,7 @@ this.uu(0)}}
 A.uQ.prototype={
 H(a){var s=null
 $.aTC()
-return A.hY(A.k_(B.V,s,s,B.ZF),B.V,A.iI(A.ce(A.b([A.bP(16),new A.ng(B.J2,"Profile",s,A.eI(B.el,B.T,s,s,s),s),A.bP(16),new A.ng(B.J1,"Notifications",s,new A.fb(new A.a6H(this),s),s),A.bP(16),new A.ng(B.J3,"Privacy",s,A.eI(B.el,B.T,s,s,s),s),A.aJ2(B.hA,0,1.5),new A.ng(B.J_,"Security",s,A.eI(B.el,B.T,s,s,s),s),A.bP(32),new A.ng(B.IZ,"Delete Account",new A.a6I(),A.eI(B.el,B.T,s,s,s),s),A.aJ2(B.hA,0,1.5),new A.ng(B.IU,"Logout",new A.a6J(this),A.eI(B.el,B.T,s,s,s),s)],t.p),B.al,B.u,B.E),s,s,B.X),s,s)}}
+return A.hY(A.k_(B.V,s,s,B.ZE),B.V,A.iI(A.ce(A.b([A.bP(16),new A.ng(B.J2,"Profile",s,A.eI(B.el,B.T,s,s,s),s),A.bP(16),new A.ng(B.J1,"Notifications",s,new A.fb(new A.a6H(this),s),s),A.bP(16),new A.ng(B.J3,"Privacy",s,A.eI(B.el,B.T,s,s,s),s),A.aJ2(B.hA,0,1.5),new A.ng(B.J_,"Security",s,A.eI(B.el,B.T,s,s,s),s),A.bP(32),new A.ng(B.IZ,"Delete Account",new A.a6I(),A.eI(B.el,B.T,s,s,s),s),A.aJ2(B.hA,0,1.5),new A.ng(B.IU,"Logout",new A.a6J(this),A.eI(B.el,B.T,s,s,s),s)],t.p),B.al,B.u,B.E),s,s,B.X),s,s)}}
 A.a6H.prototype={
 $0(){var s=this.a,r=$.V
 if(r==null)r=$.V=B.m
@@ -49493,7 +49493,7 @@ A.uR.prototype={
 H(a){var s,r,q,p,o,n,m,l=null
 A.O(a)
 $.aX()
-s=A.k_(B.V,0,l,B.ZC)
+s=A.k_(B.V,0,l,B.ZB)
 r=A.aJ("The fields marked with * are mandatory",l,l,l,A.c5(l,l,B.dq,l,l,l,l,l,l,l,l,14,l,l,B.a9,l,l,!0,l,l,l,l,l,l,l,l),l,l)
 q=A.bP(16)
 p=$.V
@@ -49757,7 +49757,7 @@ $S:447}
 A.w4.prototype={
 H(a){var s=null
 $.aX()
-return A.jx(!0,A.hY(A.k_(B.V,0,s,B.ZH),B.V,new A.aL(new A.ah(16,16,16,16),A.ce(A.b([A.dT(new A.fb(new A.afn(this),s),1),A.od(B.T,B.Jg,new A.afo(this),"Add Idea",B.i)],t.p),B.F,B.u,B.E),s),s,s),!0,B.a7,!0,!1)}}
+return A.jx(!0,A.hY(A.k_(B.V,0,s,B.ZG),B.V,new A.aL(new A.ah(16,16,16,16),A.ce(A.b([A.dT(new A.fb(new A.afn(this),s),1),A.od(B.T,B.Jg,new A.afo(this),"Add Idea",B.i)],t.p),B.F,B.u,B.E),s),s,s),!0,B.a7,!0,!1)}}
 A.afn.prototype={
 $0(){var s,r=null,q=this.a,p=$.V
 if(p==null)p=$.V=B.m
@@ -49936,7 +49936,7 @@ $S:8}
 A.wa.prototype={
 H(a3){var s,r,q,p,o,n,m,l,k,j,i,h,g,f,e,d,c=this,b=null,a="Affliation",a0="Career Stage",a1="Keywords",a2=A.O(a3)
 $.aX()
-s=A.k_(B.V,b,B.l,B.ZR)
+s=A.k_(B.V,b,B.l,B.ZQ)
 a2=a2.ok.w
 r=A.aJ("Please fill the following to complete your profile:",b,b,b,a2,b,b)
 q=A.bP(16)
@@ -50133,7 +50133,7 @@ s=n.length
 r=j.d
 m=r!=null&&r===s
 $.aX()
-r=A.k_(B.V,i,B.l,B.ZT)
+r=A.k_(B.V,i,B.l,B.ZS)
 q=j.e
 l=A.aJ(q?"Edit your selected description before continuing.":"Which one of the following descriptions do you prefer for your profile?",i,i,i,B.Ym,i,i)
 if(q)s=A.y6(i,B.b1,!1,i,!0,B.G,i,A.M9(),j.r,i,i,i,i,i,2,A.wc(i,B.m4,i,i,i,i,i,i,!0,i,i,i,i,i,i,i,i,i,i,i,i,i,i,i,i,i,i,i,i,i,i,m?"Write your own description...":i,i,i,i,i,i,i,i,i,i,!0,!0,!1,i,i,i,i,i,i,i,i,i,i,i,i,i,i),B.S,!0,i,!0,i,!0,i,B.c8,i,i,i,i,B.eJ,i,i,i,i,i,i,!1,"\u2022",i,i,i,i,i,!1,i,i,!1,i,!0,i,B.ds,i,i,i,i,i,i,i,i,i,i,i,i,!0,B.an,B.h7,B.dN,i,i,i,i)
@@ -50238,7 +50238,7 @@ H(a){var s,r,q,p,o=null
 A.O(a)
 $.aX()
 A.dc()
-s=A.k_(B.V,o,B.l,B.ZS)
+s=A.k_(B.V,o,B.l,B.ZR)
 r=A.aJ("The fields marked with * are mandatory",o,o,o,A.c5(o,o,B.dq,o,o,o,o,o,o,o,o,14,o,o,B.a9,o,o,!0,o,o,o,o,o,o,o,o),o,o)
 q=A.bP(16)
 p=$.V
@@ -50918,7 +50918,7 @@ return A.B($async$Bt,r)},
 H(a){var s,r,q,p,o,n=this,m=null
 $.aX()
 A.dc()
-s=A.k_(B.V,0,B.l,B.ZB)
+s=A.k_(B.V,0,B.l,B.ZA)
 r=t.p
 q=A.b([],r)
 if(n.e)B.b.U(q,A.b([A.aN_(B.T,m),B.eG],r))
@@ -107284,12 +107284,12 @@ B.Fj=new A.AV(null,null,null,null,null,null)
 B.a2D=new A.atV(0,"material")
 B.Fr=new A.o7(null,null,null,null,null,null,null,null)
 B.cW=new A.hB(B.W,null,null,B.Fr,null)
-B.ZP=new A.c8("No saved ideas yet.",null,null,null,null,null,null,null,null)
-B.Fk=new A.hB(B.W,null,null,B.ZP,null)
-B.Zz=new A.c8("No mailing list pages found.",null,null,null,null,null,null,null,null)
-B.Fl=new A.hB(B.W,null,null,B.Zz,null)
-B.ZG=new A.c8("No SQL tables found.",null,null,null,null,null,null,null,null)
-B.Fm=new A.hB(B.W,null,null,B.ZG,null)
+B.ZI=new A.c8("No liked users yet.",null,null,null,null,null,null,null,null)
+B.Fk=new A.hB(B.W,null,null,B.ZI,null)
+B.Zy=new A.c8("No mailing list pages found.",null,null,null,null,null,null,null,null)
+B.Fl=new A.hB(B.W,null,null,B.Zy,null)
+B.ZF=new A.c8("No SQL tables found.",null,null,null,null,null,null,null,null)
+B.Fm=new A.hB(B.W,null,null,B.ZF,null)
 B.Fn=new A.v5(null,null,null,null,null,null,null,null,null)
 B.e2=new A.v6(0,0,"none")
 B.dn=new A.v6(1,1,"isTrue")
@@ -107707,8 +107707,8 @@ B.pp=new A.qQ(!1,!1,!1,!0)
 B.li=new A.Pp(0,"tight")
 B.aP=new A.hK(700)
 B.Xo=new A.t(!0,null,null,null,null,null,24,B.aP,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.Zx=new A.c8("Saved Ideas",null,B.Xo,null,null,null,null,null,null)
-B.Io=new A.C4(1,B.li,B.Zx,null)
+B.ZW=new A.c8("Liked Users",null,B.Xo,null,null,null,null,null,null)
+B.Io=new A.C4(1,B.li,B.ZW,null)
 B.Ip=new A.C6(null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.hZ=new A.mv(!1,!1,!1,!1)
 B.i_=new A.mv(!1,!1,!1,!0)
@@ -109269,20 +109269,20 @@ B.iE=new A.wY(0,"none")
 B.R1=new A.wY(1,"scroll")
 B.R2=new A.wY(3,"scale")
 B.R3=new A.wY(4,"unknown")
-B.ZU=new A.c8("Verify your email",null,null,null,null,null,null,null,null)
+B.ZT=new A.c8("Verify your email",null,null,null,null,null,null,null,null)
 B.Zu=new A.c8("Registration successful. We sent a verification link to your email. Please check your inbox before logging in.",null,null,null,null,null,null,null,null)
-B.CB=new A.qg(B.ZU,B.Zu,null,null)
+B.CB=new A.qg(B.ZT,B.Zu,null,null)
 B.R4=new A.t4(B.CB,null,!1,null,t.G_)
-B.ZV=new A.c8("Rough direction",null,null,null,null,null,null,null,null)
-B.R5=new A.ko("Rough direction",B.ZV,null,t.wI)
+B.ZU=new A.c8("Rough direction",null,null,null,null,null,null,null,null)
+B.R5=new A.ko("Rough direction",B.ZU,null,t.wI)
 B.ZK=new A.c8("General interest",null,null,null,null,null,null,null,null)
 B.R6=new A.ko("General interest",B.ZK,null,t.wI)
 B.Zs=new A.c8("Halfway there",null,null,null,null,null,null,null,null)
 B.R7=new A.ko("Halfway there",B.Zs,null,t.wI)
-B.Zy=new A.c8("Work in progress",null,null,null,null,null,null,null,null)
-B.R8=new A.ko("Work in progress",B.Zy,null,t.wI)
-B.ZW=new A.c8("Concrete idea",null,null,null,null,null,null,null,null)
-B.R9=new A.ko("Concrete idea",B.ZW,null,t.wI)
+B.Zx=new A.c8("Work in progress",null,null,null,null,null,null,null,null)
+B.R8=new A.ko("Work in progress",B.Zx,null,t.wI)
+B.ZV=new A.c8("Concrete idea",null,null,null,null,null,null,null,null)
+B.R9=new A.ko("Concrete idea",B.ZV,null,t.wI)
 B.Ra=new A.x1(null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.Rb=new A.x6(null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.Rc=new A.x9(null,null,null,null,null,null,null,null,null)
@@ -109607,8 +109607,8 @@ B.U4=new A.lC(5,"timeout")
 B.U5=new A.xM(null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.ZN=new A.c8("Select at least one recipient group.",null,null,null,null,null,null,null,null)
 B.U6=new A.pn(B.ZN,null,null,null,null,null,null,null,null,null,null,null,null,B.dr,!1,null,null,null,B.G,null)
-B.ZQ=new A.c8("Failed to create new file.",null,null,null,null,null,null,null,null)
-B.U7=new A.pn(B.ZQ,null,null,null,null,null,null,null,null,null,null,null,null,B.dr,!1,null,null,null,B.G,null)
+B.ZP=new A.c8("Failed to create new file.",null,null,null,null,null,null,null,null)
+B.U7=new A.pn(B.ZP,null,null,null,null,null,null,null,null,null,null,null,null,B.dr,!1,null,null,null,B.G,null)
 B.aT=new A.U6(0,"TOP")
 B.j7=new A.U6(1,"BOTTOM")
 B.Bt=new A.aqJ(0,"FLOATING")
@@ -110026,23 +110026,23 @@ B.BV=new A.c8("Remove",null,null,null,null,null,null,null,null)
 B.BW=new A.c8("Save",null,null,null,null,null,null,null,null)
 B.Zv=new A.c8("Create",null,null,null,null,null,null,null,null)
 B.Zw=new A.c8("Register",null,null,null,null,null,null,null,null)
-B.ZA=new A.c8("Admin Welcome",null,B.d8,null,null,null,null,null,null)
-B.ZB=new A.c8("Email Verification",null,B.d8,null,null,null,null,null,null)
-B.ZC=new A.c8("Login",null,null,null,null,null,null,null,null)
-B.ZD=new A.c8("Send Now",null,null,null,null,null,null,null,null)
-B.ZE=new A.c8("Schedule for later",null,null,null,null,null,null,null,null)
-B.ZF=new A.c8("Settings",null,B.d8,null,null,null,null,null,null)
+B.Zz=new A.c8("Admin Welcome",null,B.d8,null,null,null,null,null,null)
+B.ZA=new A.c8("Email Verification",null,B.d8,null,null,null,null,null,null)
+B.ZB=new A.c8("Login",null,null,null,null,null,null,null,null)
+B.ZC=new A.c8("Send Now",null,null,null,null,null,null,null,null)
+B.ZD=new A.c8("Schedule for later",null,null,null,null,null,null,null,null)
+B.ZE=new A.c8("Settings",null,B.d8,null,null,null,null,null,null)
 B.BX=new A.c8("Cancel",null,null,null,null,null,null,null,null)
-B.ZH=new A.c8("My Ideas",null,B.cL,null,null,null,null,null,null)
-B.ZI=new A.c8("Remove file",null,null,null,null,null,null,null,null)
+B.ZG=new A.c8("My Ideas",null,B.cL,null,null,null,null,null,null)
+B.ZH=new A.c8("Remove file",null,null,null,null,null,null,null,null)
 B.ZJ=new A.c8("Add Tags",null,null,null,null,null,null,null,null)
 B.Wy=new A.t(!0,null,null,null,null,null,20,B.cj,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.ZL=new A.c8("Unite, Motivate, \nCooperate.",null,B.Wy,B.aL,null,null,null,null,null)
 B.ZM=new A.c8("Admin Login",null,null,null,null,null,null,null,null)
 B.ZO=new A.c8("Create Card",null,B.d8,null,null,null,null,null,null)
-B.ZR=new A.c8("Preliminary Information",null,B.d8,null,null,null,null,null,null)
-B.ZS=new A.c8("Recover Account",null,B.d8,null,null,null,null,null,null)
-B.ZT=new A.c8("Choose Your Preference",null,B.d8,null,null,null,null,null,null)
+B.ZQ=new A.c8("Preliminary Information",null,B.d8,null,null,null,null,null,null)
+B.ZR=new A.c8("Recover Account",null,B.d8,null,null,null,null,null,null)
+B.ZS=new A.c8("Choose Your Preference",null,B.d8,null,null,null,null,null,null)
 B.BY=new A.UV(0,"system")
 B.ZX=new A.UV(2,"dark")
 B.PN=new A.h(0.056,0.024)

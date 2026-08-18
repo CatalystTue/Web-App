@@ -53,9 +53,9 @@ class BaseViewModel extends GetxController {
   Future<void> fetchSavedIdeas() async {
     try {
       _model.savedIdeas = await CardsService().getSavedIdeas();
-      debugPrint('[Base] Loaded ${_model.savedIdeas.length} saved ideas');
+      debugPrint('[Base] Loaded ${_model.savedIdeas.length} liked users');
     } catch (e, stackTrace) {
-      debugPrint('[Base] Failed to load saved ideas: $e');
+      debugPrint('[Base] Failed to load liked users: $e');
       debugPrint('$stackTrace');
     }
     update();

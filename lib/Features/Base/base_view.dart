@@ -66,7 +66,7 @@ class AppBaseView extends GetView<BaseViewModel> {
                       IconButton(
                         icon: const Icon(Icons.lightbulb_outline_rounded),
                         color: Colors.black,
-                        tooltip: 'Saved Ideas',
+                        tooltip: 'Liked Users',
                         onPressed: () => _showSavedIdeas(context),
                       ),
                     ],
@@ -88,7 +88,7 @@ class AppBaseView extends GetView<BaseViewModel> {
     await showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'Saved Ideas',
+      barrierLabel: 'Liked Users',
       transitionDuration: const Duration(milliseconds: 250),
       pageBuilder: (dialogContext, _, __) => Align(
         alignment: Alignment.centerRight,
@@ -107,7 +107,7 @@ class AppBaseView extends GetView<BaseViewModel> {
                       children: [
                         const Expanded(
                           child: Text(
-                            'Saved Ideas',
+                            'Liked Users',
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -125,7 +125,7 @@ class AppBaseView extends GetView<BaseViewModel> {
                   const Divider(height: 1),
                   Expanded(
                     child: savedIdeas.isEmpty
-                        ? const Center(child: Text('No saved ideas yet.'))
+                        ? const Center(child: Text('No liked users yet.'))
                         : ListView.separated(
                             padding: EdgeInsets.all(
                               AppConfig().dimens.medium,

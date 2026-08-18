@@ -106,6 +106,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
   bool _isDismissing = false;
   final List<_StackSnapshot> _undoHistory = [];
   final Set<int> _markedCardIds = {};
+  final Map<int, GlobalKey> _cardKeys = {};
   final FocusNode _keyboardFocusNode = FocusNode();
 
   bool get canUndo => _undoHistory.isNotEmpty && !_isDismissing;
@@ -126,6 +127,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
         ..clear()
         ..addAll(snapshot.markedCardIds);
     });
+    _scrollActiveCardIntoView();
   }
 
   void _heartCard(int cardId) {
@@ -147,6 +149,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _keyboardFocusNode.requestFocus();
+        _scrollActiveCardIntoView();
       }
     });
   }
@@ -208,22 +211,38 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
   }
 
   void _bringNextCardForward() {
-    int init_idx = 0;
     if (_isDismissing || _cards.isEmpty) return;
-    init_idx = _cards[_frontIndex].initStackPos;
-    init_idx = (init_idx + 1) % _cards.length;
+    final nextInitPosition =
+        (_cards[_frontIndex].initStackPos + 1) % _cards.length;
     setState(() {
-      _frontIndex = _InittoIdx(init_idx);
+      _frontIndex = _initPositionToIndex(nextInitPosition);
     });
+    _scrollActiveCardIntoView();
   }
 
   void _bringPreviousCardForward() {
-    int init_idx = 0;
     if (_isDismissing || _cards.isEmpty) return;
-    init_idx = _cards[_frontIndex].initStackPos;
-    init_idx = (init_idx - 1 + _cards.length) % _cards.length;
+    final previousInitPosition =
+        (_cards[_frontIndex].initStackPos - 1 + _cards.length) % _cards.length;
     setState(() {
-      _frontIndex = _InittoIdx(init_idx);
+      _frontIndex = _initPositionToIndex(previousInitPosition);
+    });
+    _scrollActiveCardIntoView();
+  }
+
+  void _scrollActiveCardIntoView() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _cards.isEmpty) return;
+      final activeCard = _cards[_frontIndex];
+      final cardContext = _cardKeys[activeCard.id]?.currentContext;
+      if (cardContext == null) return;
+
+      Scrollable.ensureVisible(
+        cardContext,
+        duration: _animationDuration,
+        curve: Curves.easeInOutCubic,
+        alignment: 0.5,
+      );
     });
   }
 
@@ -264,10 +283,11 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
       _dismissDirection = null;
       _isDismissing = false;
     });
+    _scrollActiveCardIntoView();
     if (wasHearted) widget.onCardHearted?.call(card.user);
   }
 
-  int _InittoIdx(int index) {
+  int _initPositionToIndex(int index) {
     for (int i = 0; i < _cards.length; i++) {
       if (_cards[i].initStackPos == index) {
         return i;
@@ -278,6 +298,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
 
   void _applyDismiss(_StackCard dismissed) {
     _markedCardIds.remove(dismissed.id);
+    _cardKeys.remove(dismissed.id);
     final dismissedPos = dismissed.initStackPos;
 
     if (dismissedPos < _lastTwoThreshold) {
@@ -383,17 +404,23 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
             child: Column(
               children: [
                 Expanded(
-                  child: Center(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => Center(
                       child: SizedBox(
-                        width: _stackWidth,
+                        width: constraints.constrainWidth(_stackWidth),
                         height: _stackHeight,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          clipBehavior: Clip.none,
-                          children:
-                              _sortedCards.map(_buildStackedCard).toList(),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SizedBox(
+                            width: _stackWidth,
+                            height: _stackHeight,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              clipBehavior: Clip.none,
+                              children:
+                                  _sortedCards.map(_buildStackedCard).toList(),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -457,43 +484,47 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     final isDismissing = card.id == _dismissingCardId;
     final horizontalOffset =
         (card.initStackPos - _centerCardIndex) * _horizontalStep;
+    final baseLeft = (_stackWidth - _cardWidth) / 2 + horizontalOffset;
+    const baseTop = (_stackHeight - _cardHeight) / 2;
 
     final horizontalDismiss =
         isDismissing && _dismissDirection == _DismissDirection.right
-            ? 1.4
+            ? _cardWidth * 1.4
             : 0.0;
 
     final verticalDismiss = isDismissing
         ? switch (_dismissDirection) {
-            _DismissDirection.up => -1.4,
-            _DismissDirection.down => 1.4,
+            _DismissDirection.up => -_cardHeight * 1.4,
+            _DismissDirection.down => _cardHeight * 1.4,
             _ => 0.0,
           }
         : 0.0;
 
     final opacity = isDismissing ? 0.0 : (isFront ? 1.0 : 0.9);
 
-    return AnimatedOpacity(
+    return AnimatedPositioned(
       key: ValueKey('card-${card.id}'),
-      opacity: opacity,
+      left: baseLeft + horizontalDismiss,
+      top: baseTop + verticalDismiss,
+      width: _cardWidth,
+      height: _cardHeight,
       duration: _animationDuration,
       curve: Curves.easeInOutCubic,
-      child: AnimatedSlide(
-        offset: Offset(
-          horizontalOffset / _cardWidth + horizontalDismiss,
-          verticalDismiss,
-        ),
-        duration: _animationDuration,
-        curve: Curves.easeInOutCubic,
-        child: SizedBox(
-          width: _cardWidth,
-          height: _cardHeight,
-          child: AnimatedScale(
-            scale: isFront ? 1.0 : _behindScale,
-            duration: _animationDuration,
-            curve: Curves.easeInOutCubic,
-            alignment: Alignment.center,
-            child: _buildCardFace(card, isInteractive: isFront),
+      child: KeyedSubtree(
+        key: _cardKeys.putIfAbsent(card.id, () => GlobalKey()),
+        child: AnimatedOpacity(
+          opacity: opacity,
+          duration: _animationDuration,
+          curve: Curves.easeInOutCubic,
+          child: IgnorePointer(
+            ignoring: !isFront || _isDismissing,
+            child: AnimatedScale(
+              scale: isFront ? 1.0 : _behindScale,
+              duration: _animationDuration,
+              curve: Curves.easeInOutCubic,
+              alignment: Alignment.center,
+              child: _buildCardFace(card, isInteractive: isFront),
+            ),
           ),
         ),
       ),
@@ -503,12 +534,12 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
   Widget _buildCardFace(_StackCard card, {required bool isInteractive}) {
     return Card(
       elevation: 10.0,
-      shadowColor: Colors.black.withOpacity(0.2),
+      shadowColor: Colors.black.withValues(alpha: 0.2),
       color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: card.color.withOpacity(0.55),
+          color: card.color.withValues(alpha: 0.55),
           width: 2,
         ),
       ),
@@ -609,6 +640,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
 
     return IconButton(
       onPressed: canHeart ? () => _heartCard(cardId) : null,
+      tooltip: canHeart ? 'Heart card' : null,
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints.tightFor(width: 40, height: 40),
       icon: AnimatedSwitcher(

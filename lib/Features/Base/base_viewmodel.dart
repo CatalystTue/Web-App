@@ -54,13 +54,18 @@ class BaseViewModel extends GetxController {
     update();
   }
 
-  void saveIdea(StackUserModel idea) {
-    if (_model.savedIdeas.any((saved) =>
-        saved.name == idea.name && saved.description == idea.description)) {
+  Future<void> saveIdea(StackUserModel idea) async {
+    if (_model.savedIdeas.any((saved) => saved.id == idea.id)) {
+      // saved.name == idea.name && saved.description == idea.description)) {
       return;
     }
     _model.savedIdeas.add(idea);
     update();
+
+    await CardsService().swipeCard(
+      interested: 'true',
+      cardId: idea.id.toString(),
+    );
   }
 
   void removeSavedIdea(StackUserModel idea) {

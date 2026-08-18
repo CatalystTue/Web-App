@@ -95,7 +95,7 @@ class AppBaseView extends GetView<BaseViewModel> {
         width: 420,
         height: double.infinity,
         child: SafeArea(
-          child: /* your Saved Ideas list */,
+          child: const SizedBox.shrink(),
         ),
       ),
     ),

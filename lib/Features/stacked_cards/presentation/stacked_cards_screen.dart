@@ -203,6 +203,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
       return _userPool.removeAt(0);
     }
     return StackUserModel(
+      id: -1,
       name: 'User ${_nextCardId + 1}',
       description: 'No more users in queue.',
       affiliation: '',

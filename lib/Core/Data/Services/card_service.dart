@@ -152,6 +152,31 @@ class CardsService extends ServicesHelper {
     log('Swipe Response: $response');
   }
 
+  Future<List<StackUserModel>> getSavedIdeas() async {
+    final data = await request(
+      '$baseURL/swipes/me',
+      serviceType: ServiceType.get,
+      requiredDefaultHeader: true,
+    );
+
+    final rawIdeas = data is List
+        ? data
+        : data is Map<String, dynamic>
+            ? data['ideas']
+            : null;
+
+    if (rawIdeas is! List) {
+      return [];
+    }
+
+    return rawIdeas
+        .whereType<Map>()
+        .map((item) => StackUserModel.fromJson(
+              Map<String, dynamic>.from(item),
+            ))
+        .toList();
+  }
+
   Future<StackUserModel?> getReplacementUser({
     required List<int> remainingUserIds,
     required int dismissedUserId,

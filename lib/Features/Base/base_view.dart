@@ -80,38 +80,91 @@ class AppBaseView extends GetView<BaseViewModel> {
     );
   }
 
-  void _showSavedIdeas(BuildContext context) {
+  Future<void> _showSavedIdeas(BuildContext context) async {
+    await controller.fetchSavedIdeas();
+    if (!context.mounted) return;
+
     final savedIdeas = controller.savedIdeas;
-    showGeneralDialog(
-  context: context,
-  barrierDismissible: true,
-  barrierLabel: 'Saved Ideas',
-  transitionDuration: const Duration(milliseconds: 250),
-  pageBuilder: (_, __, ___) => Align(
-    alignment: Alignment.centerRight,
-    child: Material(
-      color: AppConfig().colors.backGroundColor,
-      child: SizedBox(
-        width: 420,
-        height: double.infinity,
-        child: SafeArea(
-          child: const SizedBox.shrink(),
+    await showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Saved Ideas',
+      transitionDuration: const Duration(milliseconds: 250),
+      pageBuilder: (dialogContext, _, __) => Align(
+        alignment: Alignment.centerRight,
+        child: Material(
+          color: AppConfig().colors.backGroundColor,
+          child: SizedBox(
+            width: 420,
+            height: double.infinity,
+            child: SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(AppConfig().dimens.medium),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Saved Ideas',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Close',
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: savedIdeas.isEmpty
+                        ? const Center(child: Text('No saved ideas yet.'))
+                        : ListView.separated(
+                            padding: EdgeInsets.all(
+                              AppConfig().dimens.medium,
+                            ),
+                            itemCount: savedIdeas.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 12),
+                            itemBuilder: (_, index) {
+                              final idea = savedIdeas[index];
+                              return Card(
+                                child: ListTile(
+                                  title: Text(idea.name),
+                                  subtitle: Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Text(idea.description),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
-    ),
-  ),
-  transitionBuilder: (_, animation, __, child) {
-    return SlideTransition(
-      position: Tween<Offset>(
-        begin: const Offset(1, 0),
-        end: Offset.zero,
-      ).animate(CurvedAnimation(
-        parent: animation,
-        curve: Curves.easeOutCubic,
-      )),
-      child: child,
+      transitionBuilder: (_, animation, __, child) {
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(1, 0),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          )),
+          child: child,
+        );
+      },
     );
-  },
-);
   }
 }

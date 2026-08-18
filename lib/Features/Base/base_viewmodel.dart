@@ -29,6 +29,7 @@ class BaseViewModel extends GetxController {
       debugPrint('[Base] Local cache contents: $entries');
     }
     fetchStackUsers();
+    fetchSavedIdeas();
   }
 
   Future<void> fetchStackUsers() async {
@@ -46,6 +47,17 @@ class BaseViewModel extends GetxController {
     }
 
     _model.isLoadingStackUsers = false;
+    update();
+  }
+
+  Future<void> fetchSavedIdeas() async {
+    try {
+      _model.savedIdeas = await CardsService().getSavedIdeas();
+      debugPrint('[Base] Loaded ${_model.savedIdeas.length} saved ideas');
+    } catch (e, stackTrace) {
+      debugPrint('[Base] Failed to load saved ideas: $e');
+      debugPrint('$stackTrace');
+    }
     update();
   }
 

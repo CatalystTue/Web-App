@@ -151,4 +151,25 @@ class CardsService extends ServicesHelper {
     );
     log('Swipe Response: $response');
   }
+
+  Future<StackUserModel?> getReplacementUser({
+    required List<int> remainingUserIds,
+    required int dismissedUserId,
+  }) async {
+    final data = await request(
+      '$baseURL/cards_catch/next',
+      serviceType: ServiceType.post,
+      requiredDefaultHeader: true,
+      body: {
+        'remaining_user_ids': remainingUserIds,
+        'dismissed_user_id': dismissedUserId,
+      },
+    );
+
+    if (data is! Map<String, dynamic> || data['id'] == null) {
+      return null;
+    }
+
+    return StackUserModel.fromJson(data);
+  }
 }

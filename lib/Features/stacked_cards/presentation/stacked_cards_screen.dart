@@ -1,5 +1,6 @@
 import 'package:catalyst_flutter_app/Core/Constants/config.dart';
 import 'package:catalyst_flutter_app/Core/Data/Models/stack_user_model.dart';
+import 'package:catalyst_flutter_app/Core/Data/Services/card_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
@@ -258,6 +259,17 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
   ) async {
     if (_isDismissing || _cards.isEmpty) return;
 
+    final remainingUserIds = _cards
+        .where((item) => item.id != card.id)
+        .map((item) => item.user.id)
+        .where((id) => id > 0)
+        .toSet()
+        .toList();
+    final replacementFuture = CardsService().getReplacementUser(
+      remainingUserIds: remainingUserIds,
+      dismissedUserId: card.user.id,
+    );
+
     setState(() {
       _isDismissing = true;
       _dismissingCardId = card.id;
@@ -265,6 +277,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     });
 
     await Future.delayed(_animationDuration);
+    final replacementUser = await replacementFuture;
 
     if (!mounted) return;
 
@@ -279,7 +292,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
         markedCardIds: Set<int>.from(_markedCardIds),
         savedIdea: wasHearted ? card.user : null,
       ));
-      _applyDismiss(card);
+      _applyDismiss(card, replacementUser);
       _dismissingCardId = null;
       _dismissDirection = null;
       _isDismissing = false;
@@ -297,7 +310,10 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     return -1;
   }
 
-  void _applyDismiss(_StackCard dismissed) {
+  void _applyDismiss(
+    _StackCard dismissed,
+    StackUserModel? replacement,
+  ) {
     _markedCardIds.remove(dismissed.id);
     _cardKeys.remove(dismissed.id);
     final dismissedPos = dismissed.initStackPos;
@@ -311,7 +327,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
       }).toList();
 
       _cards.add(_stackCardFromUser(
-        user: _nextUserFromPool(),
+        user: replacement ?? _nextUserFromPool(),
         initStackPos: 0,
       ));
     } else {
@@ -328,7 +344,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
       );
 
       _cards.add(_stackCardFromUser(
-        user: _nextUserFromPool(),
+        user: replacement ?? _nextUserFromPool(),
         initStackPos: maxPos + 1,
       ));
     }

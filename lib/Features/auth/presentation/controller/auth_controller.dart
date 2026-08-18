@@ -1,4 +1,5 @@
 import 'package:catalyst_flutter_app/Core/Constants/config.dart';
+import 'package:catalyst_flutter_app/Core/Data/Services/auth_service.dart';
 import 'package:catalyst_flutter_app/app_repo.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -33,7 +34,13 @@ class AuthController extends GetxController {
 
       if (response != null) {
         await AppRepo().loginUser(response);
-        Get.offAllNamed(AppConfig().routes.initform);
+        final profileComplete = await AuthenticationService().isProfileComplete();
+
+        // Do not guess when the profile check failed: sending the user through
+        // setup is safer than presenting the app with an incomplete profile.
+        Get.offAllNamed(profileComplete == true
+            ? AppConfig().routes.base
+            : AppConfig().routes.initform);
       } else {
         loading.value = false;
         print('Login failed');

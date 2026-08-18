@@ -445,6 +445,20 @@ class AuthenticationService extends ServicesHelper {
     return response is Map<String, dynamic> ? response : null;
   }
 
+  Future<bool?> isProfileComplete() async {
+    final response = await request(
+      '$baseURL/users/me/profile-status',
+      serviceType: ServiceType.get,
+      requiredDefaultHeader: true,
+    );
+
+    if (response is Map<String, dynamic>) {
+      return response['profile_complete'] == true;
+    }
+
+    return null;
+  }
+
   Future<Map<String, dynamic>?> verifyEmailToken(String token) async {
     final response = await request(
       '$baseURL/verify/',

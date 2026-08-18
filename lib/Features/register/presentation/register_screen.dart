@@ -103,7 +103,7 @@ class RegisterScreen extends GetView<RegisterController> {
             // Gap(AppConfig().dimens.small),
             CustomTextField(
               controller: controller.passwordCtrl,
-              labelText: "Password",
+              labelText: "Password *",
               leftIcon: Icons.lock_outline,
               isPassword: true,
               secondIcon: Icons.remove_red_eye,
@@ -114,6 +114,42 @@ class RegisterScreen extends GetView<RegisterController> {
                   return "Password is not strong";
                 }
                 return null;
+              },
+            ),
+            const Gap(8),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: controller.passwordCtrl,
+              builder: (context, value, child) {
+                final password = value.text;
+                return _PasswordRequirements(
+                  requirements: [
+                    _PasswordRequirement(
+                      label: 'At least 8 characters',
+                      isMet: controller.passwordHasMinimumLength(password),
+                    ),
+                    _PasswordRequirement(
+                      label: 'One lowercase letter',
+                      isMet: controller.passwordHasLowercaseLetter(password),
+                    ),
+                    _PasswordRequirement(
+                      label: 'One uppercase letter',
+                      isMet: controller.passwordHasUppercaseLetter(password),
+                    ),
+                    _PasswordRequirement(
+                      label: 'One number',
+                      isMet: controller.passwordHasNumber(password),
+                    ),
+                    _PasswordRequirement(
+                      label: r'One symbol: @ $ ! % * ? &',
+                      isMet: controller.passwordHasAllowedSymbol(password),
+                    ),
+                    _PasswordRequirement(
+                      label: r'Only letters, numbers, and @ $ ! % * ? &',
+                      isMet: controller
+                          .passwordUsesOnlyAllowedCharacters(password),
+                    ),
+                  ],
+                );
               },
             ),
             Gap(AppConfig().dimens.medium),
@@ -222,6 +258,76 @@ class RegisterScreen extends GetView<RegisterController> {
             : AppConfig().dimens.medium,
         top: AppConfig().dimens.small,
       ),
+    );
+  }
+}
+
+class _PasswordRequirement {
+  const _PasswordRequirement({
+    required this.label,
+    required this.isMet,
+  });
+
+  final String label;
+  final bool isMet;
+}
+
+class _PasswordRequirements extends StatelessWidget {
+  const _PasswordRequirements({
+    required this.requirements,
+    super.key,
+  });
+
+  final List<_PasswordRequirement> requirements;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Your password needs:',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors().darkGrayColor,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        const Gap(6),
+        ...requirements.map(
+          (requirement) => Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Semantics(
+              excludeSemantics: true,
+              label:
+                  '${requirement.label}: ${requirement.isMet ? 'met' : 'not met'}',
+              child: Row(
+                children: [
+                  Icon(
+                    requirement.isMet
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    size: 18,
+                    color: requirement.isMet
+                        ? AppColors().greenColor
+                        : AppColors().lightGrayColor,
+                  ),
+                  const Gap(8),
+                  Expanded(
+                    child: Text(
+                      requirement.label,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: requirement.isMet
+                                ? AppColors().txtColor
+                                : AppColors().lightGrayColor,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

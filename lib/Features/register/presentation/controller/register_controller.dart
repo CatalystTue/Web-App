@@ -22,10 +22,29 @@ class RegisterController extends GetxController {
     return emailRegex.hasMatch(email);
   }
 
+  bool passwordHasMinimumLength(String password) => password.length >= 8;
+
+  bool passwordHasLowercaseLetter(String password) =>
+      RegExp(r'[a-z]').hasMatch(password);
+
+  bool passwordHasUppercaseLetter(String password) =>
+      RegExp(r'[A-Z]').hasMatch(password);
+
+  bool passwordHasNumber(String password) => RegExp(r'\d').hasMatch(password);
+
+  bool passwordHasAllowedSymbol(String password) =>
+      RegExp(r'[@$!%*?&]').hasMatch(password);
+
+  bool passwordUsesOnlyAllowedCharacters(String password) =>
+      password.isNotEmpty && RegExp(r'^[A-Za-z\d@$!%*?&]+$').hasMatch(password);
+
   bool isStrongPassword(String password) {
-    final RegExp passwordRegex = RegExp(
-        r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$');
-    return passwordRegex.hasMatch(password);
+    return passwordHasMinimumLength(password) &&
+        passwordHasLowercaseLetter(password) &&
+        passwordHasUppercaseLetter(password) &&
+        passwordHasNumber(password) &&
+        passwordHasAllowedSymbol(password) &&
+        passwordUsesOnlyAllowedCharacters(password);
   }
 
   bool arePasswordsSame() {

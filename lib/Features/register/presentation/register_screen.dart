@@ -275,7 +275,6 @@ class _PasswordRequirement {
 class _PasswordRequirements extends StatelessWidget {
   const _PasswordRequirements({
     required this.requirements,
-    super.key,
   });
 
   final List<_PasswordRequirement> requirements;

@@ -88,7 +88,6 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
       _cardWidth + (_visibleCardCount - 1) * _horizontalStep;
   static const double _stackHeight = 440;
   static const int _centerCardIndex = 2;
-  static const int _lastTwoThreshold = 3;
 
   static const List<Color> _cardColors = [
     Color(0xFF4F5D75),
@@ -317,53 +316,14 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     _markedCardIds.remove(dismissed.id);
     _cardKeys.remove(dismissed.id);
     final dismissedPos = dismissed.initStackPos;
+    _cards = _cards.where((card) => card.id != dismissed.id).toList();
 
-    if (dismissedPos < _lastTwoThreshold) {
-      _cards = _cards.where((card) => card.id != dismissed.id).map((card) {
-        if (card.initStackPos < dismissedPos) {
-          return card.copyWith(initStackPos: card.initStackPos + 1);
-        }
-        return card;
-      }).toList();
-
-      _cards.add(_stackCardFromUser(
-        user: replacement ?? _nextUserFromPool(),
-        initStackPos: 0,
-      ));
-    } else {
-      _cards = _cards.where((card) => card.id != dismissed.id).map((card) {
-        if (card.initStackPos > dismissedPos) {
-          return card.copyWith(initStackPos: card.initStackPos - 1);
-        }
-        return card;
-      }).toList();
-
-      final maxPos = _cards.fold<int>(
-        0,
-        (max, card) => card.initStackPos > max ? card.initStackPos : max,
-      );
-
-      _cards.add(_stackCardFromUser(
-        user: replacement ?? _nextUserFromPool(),
-        initStackPos: maxPos + 1,
-      ));
-    }
-
-    _normalizeInitStackPositions();
-    _frontIndex = _indexOfCenterCard();
-  }
-
-  void _normalizeInitStackPositions() {
-    final sorted = List<_StackCard>.from(_cards)
-      ..sort((a, b) => a.initStackPos.compareTo(b.initStackPos));
-
-    for (var i = 0; i < sorted.length; i++) {
-      final card = sorted[i];
-      final listIndex = _cards.indexWhere((c) => c.id == card.id);
-      if (listIndex >= 0) {
-        _cards[listIndex] = card.copyWith(initStackPos: i);
-      }
-    }
+    final replacementCard = _stackCardFromUser(
+      user: replacement ?? _nextUserFromPool(),
+      initStackPos: dismissedPos,
+    );
+    _cards.add(replacementCard);
+    _frontIndex = _cards.indexWhere((card) => card.id == replacementCard.id);
   }
 
   int _indexOfCenterCard() {

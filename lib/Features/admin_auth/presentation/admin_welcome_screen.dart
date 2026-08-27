@@ -2,7 +2,9 @@ import 'package:catalyst_flutter_app/Core/Components/html_preview_widget.dart';
 import 'package:catalyst_flutter_app/Core/Constants/config.dart';
 import 'package:catalyst_flutter_app/Core/Data/Services/auth_service.dart';
 import 'package:catalyst_flutter_app/Core/Utils/cookie_storage.dart';
+import 'package:catalyst_flutter_app/app_repo.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class AdminWelcomeScreen extends StatefulWidget {
   const AdminWelcomeScreen({super.key});
@@ -46,12 +48,35 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
     'monthly',
   };
   final Set<String> _selectedSendGroups = <String>{'All Users'};
-  String _sendMode = 'now';
+  String _sendMode = 'schedule';
   DateTime _sendScheduleDate = DateUtils.dateOnly(DateTime.now());
   String _sendRepeat = 'none';
   final TextEditingController _htmlEditorCtrl = TextEditingController();
   final TextEditingController _restrictionsCtrl = TextEditingController();
   final AuthenticationService _authService = AuthenticationService();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_ensureAdminSession()) return;
+      _loadRestrictions();
+    });
+  }
+
+  bool _ensureAdminSession() {
+    if (!AppRepo().hasAccessToken) {
+      final cookieToken = CookieStorage.readToken()?.trim();
+      if (cookieToken != null && cookieToken.isNotEmpty) {
+        AppRepo().jwtToken = cookieToken;
+      }
+    }
+    if (AppRepo().hasAccessToken && AppRepo().isAdminSession) {
+      return true;
+    }
+    Get.offAllNamed(AppConfig().routes.admin);
+    return false;
+  }
 
   Future<void> _createNewMailingPage() async {
     final TextEditingController pageNameCtrl = TextEditingController();
@@ -337,11 +362,19 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
     final html = await _authService.getAdminMailingPageHtml(pageName);
     if (!mounted) return;
 
+    if (html == null) {
+      setState(() {
+        _loadingMailingPageHtml = false;
+        _mailingPageHtmlError = 'Could not load page HTML.';
+      });
+      return;
+    }
+
     setState(() {
       _loadingMailingPageHtml = false;
-      final hasContent = html != null && html.isNotEmpty;
-      _selectedMailingPageHtml = html ?? '';
-      _htmlEditorCtrl.text = html ?? '';
+      final hasContent = html.isNotEmpty;
+      _selectedMailingPageHtml = html;
+      _htmlEditorCtrl.text = html;
       _htmlViewMode = hasContent ? 'preview' : 'text';
       _selectedSendGroups
         ..clear()
@@ -551,12 +584,9 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
     String failureMessage;
 
     if (_sendMode == 'now') {
-      success = await _authService.sendAdminMailingPageNow(
-        htmlName: htmlName,
-        groups: groups,
-      );
-      successMessage = 'Page "$htmlName" sent.';
-      failureMessage = 'Failed to send "$htmlName".';
+      success = false;
+      successMessage = '';
+      failureMessage = 'Send now is not available yet.';
     } else {
       success = await _authService.scheduleAdminMailingPage(
         htmlName: htmlName,
@@ -639,14 +669,8 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
             value: 'now',
             groupValue: _sendMode,
             title: const Text('Send Now'),
-            onChanged: _sendingMailingPage
-                ? null
-                : (value) {
-                    if (value == null) return;
-                    setState(() {
-                      _sendMode = value;
-                    });
-                  },
+            subtitle: const Text('Not available yet'),
+            onChanged: null,
           ),
           RadioListTile<String>(
             contentPadding: EdgeInsets.zero,

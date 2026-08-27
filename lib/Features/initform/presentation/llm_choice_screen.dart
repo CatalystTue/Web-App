@@ -37,15 +37,9 @@ class _LlmChoiceScreenState extends State<LlmChoiceScreen> {
       return;
     }
 
-    final cache = AppRepo().localCache;
-    final keys = AppConfig().localCacheKeys;
-    await cache.write(keys.profileDescription, description);
-
     setState(() => _submitting = true);
     final result = await AuthenticationService().updateProfile(
-      affliation: cache.read<String>(keys.profileAffliation),
-      position: cache.read<String>(keys.profileCareerStage),
-      description: cache.read<String>(keys.profileDescription),
+      description: description,
     );
     if (!mounted) return;
     setState(() => _submitting = false);
@@ -59,18 +53,17 @@ class _LlmChoiceScreenState extends State<LlmChoiceScreen> {
       return;
     }
 
-    await cache.remove(keys.profileAffliation);
-    await cache.remove(keys.profileCareerStage);
-    await cache.remove(keys.profileDescription);
-
+    await AppRepo().markOnboardingDone();
     Get.offAllNamed(AppConfig().routes.base);
   }
 
   @override
   Widget build(BuildContext context) {
     final args = (Get.arguments ?? {}) as Map;
-    final string1 = args['string1']?.toString() ?? '';
-    final string2 = args['string2']?.toString() ?? '';
+    final string1 =
+        args['string1']?.toString() ?? args['draft_1']?.toString() ?? '';
+    final string2 =
+        args['string2']?.toString() ?? args['draft_2']?.toString() ?? '';
 
     final suggestions = [string1, string2].where((s) => s.isNotEmpty).toList();
     final optionCount = suggestions.length + 1;

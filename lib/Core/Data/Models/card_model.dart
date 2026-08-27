@@ -1,28 +1,33 @@
 class GetCardModel {
-  final String title;
+  final int id;
+  final String name;
   final String description;
-  final List<String> tags;
-  final String stage;
-  final int cardId;
-  final int ownerId;
+  final String affiliation;
+  final String position;
+  final String location;
 
-  GetCardModel({
-    required this.title,
+  const GetCardModel({
+    required this.id,
+    required this.name,
     required this.description,
-    required this.tags,
-    required this.stage,
-    required this.cardId,
-    required this.ownerId,
+    required this.affiliation,
+    required this.position,
+    required this.location,
   });
 
   factory GetCardModel.fromJson(Map<String, dynamic> json) {
     return GetCardModel(
-      title: json['title'],
-      description: json['description'],
-      tags: List<String>.from(json['tags']),
-      stage: json['stage'],
-      cardId: json['id'],
-      ownerId: json['owner_id'],
+      id: json['id'] is int
+          ? json['id'] as int
+          : int.tryParse('${json['id']}') ?? 0,
+      name: json['name']?.toString() ??
+          json['username']?.toString() ??
+          json['title']?.toString() ??
+          '',
+      description: json['description']?.toString() ?? '',
+      affiliation: json['affiliation']?.toString() ?? '',
+      position: json['position']?.toString() ?? '',
+      location: json['location']?.toString() ?? '',
     );
   }
 }

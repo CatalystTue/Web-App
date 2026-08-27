@@ -42,52 +42,12 @@ class RegisterScreen extends GetView<RegisterController> {
                   )),
             ),
             Gap(AppConfig().dimens.medium),
-            // Text(
-            //   "First Name: *",
-            //   style: textTheme.titleMedium,
-            // ),
-            // Gap(AppConfig().dimens.small),
-            CustomTextField(
-              key: const Key('auth_fn'),
-              controller: controller.firstnameCtrl,
-              labelText: "First Name *",
-              leftIcon: Icons.person_outline,
-              validator: (newTextfieldValue) {
-                if (newTextfieldValue!.isEmpty) {
-                  return "Could not be empty";
-                }
-                return null;
-              },
-            ),
-            Gap(AppConfig().dimens.medium),
-            // Text(
-            //   "Last Name: *",
-            //   style: textTheme.titleMedium,
-            // ),
-            // Gap(AppConfig().dimens.small),
-            CustomTextField(
-              key: const Key('auth_sn'),
-              controller: controller.surnameCtrl,
-              labelText: "Last Name *",
-              leftIcon: Icons.person_outline,
-              validator: (newTextfieldValue) {
-                if (newTextfieldValue!.isEmpty) {
-                  return "Could not be empty";
-                }
-                return null;
-              },
-            ),
-            Gap(AppConfig().dimens.medium),
-            // Text(
-            //   "Email : *",
-            //   style: textTheme.titleMedium,
-            // ),
-            // Gap(AppConfig().dimens.small),
             CustomTextField(
               key: const Key('auth_email'),
               controller: controller.emailCtrl,
               labelText: "Email *",
               leftIcon: Icons.email_outlined,
+              textInputAction: TextInputAction.next,
               validator: (newTextfieldValue) {
                 if (!newTextfieldValue!.isEmail) {
                   return "Invalid email";
@@ -107,6 +67,7 @@ class RegisterScreen extends GetView<RegisterController> {
               leftIcon: Icons.lock_outline,
               isPassword: true,
               secondIcon: Icons.remove_red_eye,
+              textInputAction: TextInputAction.next,
               validator: (newTextfieldValue) {
                 if (newTextfieldValue!.isEmpty) {
                   return "could not be empty";
@@ -165,6 +126,8 @@ class RegisterScreen extends GetView<RegisterController> {
               leftIcon: Icons.lock_outline,
               isPassword: true,
               secondIcon: Icons.remove_red_eye,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => controller.registerUser(),
               validator: (newTextfieldValue) {
                 if (newTextfieldValue!.isEmpty) {
                   return "could not be empty";
@@ -190,18 +153,25 @@ class RegisterScreen extends GetView<RegisterController> {
                     )),
                 const Gap(10),
                 Expanded(
-                    child: RichText(
-                  text: TextSpan(
+                    child: Text.rich(
+                  TextSpan(
                     style: textTheme.titleMedium,
-                    children: <TextSpan>[
+                    children: [
                       const TextSpan(
                           text: "I have read and agree to the ",
                           style: TextStyle(color: Colors.black)),
-                      TextSpan(
-                        text: "Terms of Service",
-                        style: textTheme.titleMedium!.copyWith(
-                          color: AppColors().darkGrayColor,
-                          decoration: TextDecoration.underline,
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.baseline,
+                        baseline: TextBaseline.alphabetic,
+                        child: GestureDetector(
+                          onTap: controller.showTermsOfService,
+                          child: Text(
+                            "Terms of Service",
+                            style: textTheme.titleMedium!.copyWith(
+                              color: AppColors().darkGrayColor,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
                         ),
                       ),
                     ],

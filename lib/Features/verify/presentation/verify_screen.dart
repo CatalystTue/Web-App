@@ -25,10 +25,34 @@ class _VerifyScreenState extends State<VerifyScreen> {
     _verify();
   }
 
-  Future<void> _verify() async {
-    final token = Get.parameters['token'];
+  String? _tokenFromQuery() {
+    final fromParameters = Get.parameters['token']?.trim();
+    if (fromParameters != null && fromParameters.isNotEmpty) {
+      return fromParameters;
+    }
+    final fromBase = Uri.base.queryParameters['token']?.trim();
+    if (fromBase != null && fromBase.isNotEmpty) {
+      return fromBase;
+    }
+    final fragment = Uri.base.fragment;
+    if (fragment.contains('?')) {
+      final query = fragment.substring(fragment.indexOf('?') + 1);
+      final token = Uri.splitQueryString(query)['token']?.trim();
+      if (token != null && token.isNotEmpty) {
+        return token;
+      }
+    }
+    return null;
+  }
 
-    if (token == null || token.isEmpty) {
+  bool _isSuccess(Map<String, dynamic>? response) {
+    return response != null && !response.containsKey('detail');
+  }
+
+  Future<void> _verify() async {
+    final token = _tokenFromQuery();
+
+    if (token == null) {
       setState(() {
         _loading = false;
         _success = false;
@@ -41,13 +65,11 @@ class _VerifyScreenState extends State<VerifyScreen> {
 
     if (!mounted) return;
 
-    if (response != null) {
-      // TODO: make sure that the Dear name is bold
+    if (_isSuccess(response)) {
       setState(() {
         _loading = false;
         _success = true;
-        _message =
-            'Dear ${response['name']}, your email was verified successfully. Now you are redirected to the login page.';
+        _message = 'Your email has been verified. You can now log in.';
       });
       Future.delayed(const Duration(seconds: 3), () {
         Get.offAllNamed(AppConfig().routes.auth);

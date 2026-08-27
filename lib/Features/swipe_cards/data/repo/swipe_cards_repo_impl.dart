@@ -8,10 +8,14 @@ class SwipeCardsRepositoryImpl implements SwipeCardsRepository {
     return await CardsService().getStack();
   }
 
-  Future<void> swipeCard({
-    required String cardId,
-    required String interested,
+  @override
+  Future<bool> swipeCard({
+    required int targetUserId,
+    required bool interested,
   }) async {
-    return CardsService().swipeCard(cardId: cardId, interested: interested);
+    return CardsService().swipeCard(
+      targetUserId: targetUserId,
+      interested: interested,
+    );
   }
 }

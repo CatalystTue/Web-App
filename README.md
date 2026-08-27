@@ -4,21 +4,37 @@ A new Flutter project.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+The API URL is set at compile time via `--dart-define=API_BASE_URL=...` (`lib/Core/Constants/config.dart`). If omitted, it defaults to `https://server.catalyst-app.org/api/v1`.
 
-A few resources to get you started if this is your first Flutter project:
+Run locally against a local backend (start the backend first, typically `http://127.0.0.1:8000`):
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```bash
+flutter run -d chrome --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Build the web app (production API unless you pass `--dart-define`):
 
-You could run the app via the command:
-
-flutter run -d chrome
-
-If you want to build the web app, then do:
-
+```bash
 flutter build web --release
+```
+
+## Pages
+
+Named routes in `lib/Core/Constants/route.dart`. On web they are hash URLs (`/#/auth`). Not all pages are public.
+
+| Path | Screen |
+| --- | --- |
+| `/` | Splash |
+| `/register` | Register |
+| `/auth` | Login |
+| `/recover-account` | Recover account |
+| `/verify` | Verify |
+| `/reset-password` | Reset password |
+| `/initform` | Onboarding form |
+| `/llm-choice` | LLM choice |
+| `/base` | Main app shell |
+| `/idea-card` | My Card |
+| `/settings` | Settings |
+| `/stacked-cards` | Stacked cards |
+| `/admin` | Admin login |
+| `/admin-welcome` | Admin area |

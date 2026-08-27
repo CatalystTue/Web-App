@@ -27,7 +27,7 @@ class InitFormScreen extends GetView<InitFormController> {
       backgroundColor: AppConfig().colors.backGroundColor,
       appBar: AppBar(
         title: const Text(
-          'Preliminary Information',
+          'Your information',
           style: TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -43,25 +43,30 @@ class InitFormScreen extends GetView<InitFormController> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Please fill the following to complete your profile:',
+              'Name',
               style: textTheme.titleMedium,
+            ),
+            Gap(AppConfig().dimens.small),
+            CustomTextField(
+              controller: controller.nameCtrl,
+              labelText: 'Name',
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Could not be empty';
+                }
+                return null;
+              },
             ),
             Gap(AppConfig().dimens.medium),
             Text(
-              'Affliation',
+              'Affiliation',
               style: textTheme.titleMedium,
             ),
             Gap(AppConfig().dimens.small),
             CustomTextField(
               controller: controller.affliationCtrl,
-              labelText: 'Affliation',
+              labelText: 'Affiliation',
               onChanged: controller.onAffliationChanged,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Could not be empty';
-                }
-                return null;
-              },
             ),
             Obx(
               () => controller.loadingOptions.value
@@ -108,7 +113,7 @@ class InitFormScreen extends GetView<InitFormController> {
             ),
             Gap(AppConfig().dimens.medium),
             Text(
-              'Career Stage',
+              'Position / career stage',
               style: textTheme.titleMedium,
             ),
             Gap(AppConfig().dimens.small),
@@ -119,7 +124,7 @@ class InitFormScreen extends GetView<InitFormController> {
               isExpanded: true,
               menuMaxHeight: 260,
               decoration: InputDecoration(
-                labelText: 'Career Stage',
+                labelText: 'Position / career stage',
                 hintText: 'Select your career stage',
                 filled: true,
                 fillColor: Colors.white,
@@ -149,17 +154,38 @@ class InitFormScreen extends GetView<InitFormController> {
               onChanged: (value) {
                 controller.positionCtrl.text = value ?? '';
               },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Could not be empty';
-                }
-                return null;
-              },
+            ),
+            Gap(AppConfig().dimens.medium),
+            Text(
+              'Location',
+              style: textTheme.titleMedium,
+            ),
+            Gap(AppConfig().dimens.small),
+            CustomTextField(
+              controller: controller.locationCtrl,
+              labelText: 'Location',
+            ),
+            Gap(AppConfig().dimens.medium),
+            Text(
+              'Description',
+              style: textTheme.titleMedium,
+            ),
+            Gap(AppConfig().dimens.small),
+            CustomMultiLineTextField(
+              controller: controller.descriptionCtrl,
+              labelText: 'Description',
             ),
             Gap(AppConfig().dimens.medium),
             Text(
               'Keywords',
               style: textTheme.titleMedium,
+            ),
+            Gap(AppConfig().dimens.small),
+            Text(
+              'Instead of writing a description yourself, enter a few keywords and AI will draft one for you.',
+              style: textTheme.bodySmall?.copyWith(
+                color: AppConfig().colors.txtColor,
+              ),
             ),
             Gap(AppConfig().dimens.small),
             Row(
@@ -169,12 +195,6 @@ class InitFormScreen extends GetView<InitFormController> {
                   child: CustomTextField(
                     controller: controller.keywordsCtrl,
                     labelText: 'Keywords',
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Could not be empty';
-                      }
-                      return null;
-                    },
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -255,9 +275,7 @@ class InitFormScreen extends GetView<InitFormController> {
           mainAxisSize: MainAxisSize.min,
           children: [
             CustomIconButton(
-              title: controller.submitting.value
-                  ? 'Submitting...'
-                  : 'Submit and Continue',
+              title: controller.submitting.value ? 'Saving...' : 'Continue',
               onTap: controller.submitting.value
                   ? null
                   : controller.submitAndContinue,

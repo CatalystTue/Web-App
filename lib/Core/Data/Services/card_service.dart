@@ -4,142 +4,41 @@ import 'package:catalyst_flutter_app/Core/Data/Models/card_model.dart';
 import 'package:catalyst_flutter_app/Core/Data/Models/stack_user_model.dart';
 import 'package:catalyst_flutter_app/Core/Data/Services/services_helper.dart';
 import 'package:catalyst_flutter_app/Core/Utils/enum.dart';
-import 'package:catalyst_flutter_app/app_repo.dart';
 import 'package:flutter/material.dart';
 
 class CardsService extends ServicesHelper {
-  String get apiURL => '$baseURL/cards/';
+  static const int _defaultStackSize = 5;
 
-  Future<List<GetCardModel>> getStack() async {
-    // note this method only gets the qi cards of other users but not the ones
-    final mappedData = await request(
-      '$baseURL/cards/stack',
-      serviceType: ServiceType.get,
-      requiredDefaultHeader: true,
-      // contentType: 'application/json',
-    );
+  String get apiURL => '$baseURL/swipes';
 
-    return mappedData != null
-        ? [
-            for (final mappedCard in mappedData)
-              GetCardModel.fromJson(mappedCard)
-          ]
-        : [];
-  }
-
-  Future<void> createNewCard({
-    required String title,
-    required String description,
-    required List<String> tags,
-    required String stage,
-  }) async {
-    Map<String, dynamic> body = {
-      "title": title,
-      "description": description,
-      "tags": tags,
-      "stage": stage,
-    };
-
-    debugPrint('Requesting to add new card with token ${AppRepo().jwtToken}');
-
-    await request(
-      apiURL,
-      serviceType: ServiceType.post,
-      requiredDefaultHeader: true,
-      body: body,
-    );
-  }
-
-  Future<List<GetCardModel>> getCardsWithUserId(String userId) async {
-    debugPrint('Requesting cards of user with id: $userId');
-
-    // do over users/me endpoint, then no userID is necessary
-    final mappedData = await request(
-      '$baseURL/users/$userId/cards',
-      serviceType: ServiceType.get,
-      requiredDefaultHeader: false,
-    );
-
-    //TODO adopt the way how data is retrieved in getOwnCards
-
-    return mappedData != null
-        ? [
-            for (final mappedCard in mappedData)
-              GetCardModel.fromJson(mappedCard)
-          ]
-        : [];
+  Future<List<GetCardModel>> getStack({int? limit}) async {
+    return _fetchNextStack(limit: limit ?? _defaultStackSize);
   }
 
   Future<List<StackUserModel>> getMeStackUsers() async {
-    debugPrint('Requesting stack users from users/me.');
-    final mappedData = await request(
-      '$baseURL/cards_catch/me',
-      serviceType: ServiceType.get,
-      requiredDefaultHeader: true,
-    );
-
-    if (mappedData is! Map<String, dynamic>) {
-      return [];
-    }
-
-    final rawList = _extractUsersList(mappedData);
-    return rawList
-        .take(5)
-        .map((item) => StackUserModel.fromJson(
-              Map<String, dynamic>.from(item as Map),
-            ))
-        .toList();
-  }
-
-  List<dynamic> _extractUsersList(Map<String, dynamic> data) {
-    for (final key in ['users', 'stack', 'matches', 'recommendations']) {
-      final value = data[key];
-      if (value is List) return value;
-    }
-
-    final cards = data['cards'];
-    if (cards is List) return cards;
-
-    return [];
+    debugPrint('Requesting home preview cards.');
+    return _fetchNextStack(limit: _defaultStackSize);
   }
 
   Future<List<GetCardModel>> getOwnCards() async {
-    debugPrint('Requesting cards of the user.');
-    var mappedCards = null;
+    debugPrint('Requesting the current user card.');
     final mappedData = await request(
-      '$baseURL/cards_catch/me',
+      '$baseURL/profile/me',
       serviceType: ServiceType.get,
       requiredDefaultHeader: true,
     );
 
-    if (mappedData != null) {
-      mappedCards = mappedData["cards"];
-    }
-    debugPrint('Mapped cards:');
-    return mappedCards != null
-        ? [
-            for (final mappedCard in mappedCards)
-              GetCardModel.fromJson(mappedCard)
-          ]
-        : [];
+    final card = _parseCard(mappedData);
+    return card == null ? [] : [card];
   }
 
-  Future<void> deleteProject(int cardId) async {
-    await request(
-      '$baseURL/cards/$cardId',
-      serviceType: ServiceType.delete,
-      requiredDefaultHeader: true,
-    );
-  }
-
-  Future<void> swipeCard({
-    required String interested,
-    required String cardId,
+  Future<bool> swipeCard({
+    required bool interested,
+    required int targetUserId,
   }) async {
-    final url = '$baseURL/swipes/';
+    final url = '$baseURL/swipes/$targetUserId';
     final body = {
       'interested': interested,
-      'card_id': cardId,
     };
 
     log('Sending swipe request to $url with body $body');
@@ -150,51 +49,103 @@ class CardsService extends ServicesHelper {
       requiredDefaultHeader: true,
     );
     log('Swipe Response: $response');
+    if (response == null) return false;
+    if (response is Map && response.containsKey('detail')) return false;
+    return true;
+  }
+
+  Future<void> deleteSwipe({required int targetUserId}) async {
+    await request(
+      '$baseURL/swipes/$targetUserId',
+      serviceType: ServiceType.delete,
+      requiredDefaultHeader: true,
+    );
   }
 
   Future<List<StackUserModel>> getSavedIdeas() async {
     final data = await request(
-      '$baseURL/swipes/me',
+      '$baseURL/swipes',
       serviceType: ServiceType.get,
       requiredDefaultHeader: true,
     );
 
-    final rawIdeas = data is List
-        ? data
-        : data is Map<String, dynamic>
-            ? data['ideas']
-            : null;
-
-    if (rawIdeas is! List) {
-      return [];
-    }
-
-    return rawIdeas
-        .whereType<Map>()
-        .map((item) => StackUserModel.fromJson(
-              Map<String, dynamic>.from(item),
-            ))
-        .toList();
+    return _parseCardList(data);
   }
 
   Future<StackUserModel?> getReplacementUser({
     required List<int> remainingUserIds,
     required int dismissedUserId,
   }) async {
-    final data = await request(
-      '$baseURL/cards_catch/next',
-      serviceType: ServiceType.post,
-      requiredDefaultHeader: true,
-      body: {
-        'remaining_user_ids': remainingUserIds,
-        'dismissed_user_id': dismissedUserId,
-      },
+    final excludeIds = <int>{
+      ...remainingUserIds,
+      dismissedUserId,
+    }.where((id) => id > 0).toList();
+    return _fetchNext(excludeIds: excludeIds);
+  }
+
+  Future<List<GetCardModel>> _fetchNextStack({required int limit}) async {
+    if (limit <= 0) return [];
+
+    final first = await _fetchNext();
+    if (first == null) return [];
+    if (limit == 1) return [first];
+
+    final firstExclude = first.id > 0 ? [first.id] : <int>[];
+    final rest = await Future.wait(
+      List.generate(
+        limit - 1,
+        (_) => _fetchNext(excludeIds: firstExclude),
+      ),
     );
 
-    if (data is! Map<String, dynamic> || data['id'] == null) {
-      return null;
+    final seen = <int>{if (first.id > 0) first.id};
+    final cards = <GetCardModel>[first];
+    for (final card in rest) {
+      if (card == null) continue;
+      if (card.id > 0 && !seen.add(card.id)) continue;
+      cards.add(card);
     }
 
-    return StackUserModel.fromJson(data);
+    while (cards.length < limit) {
+      final excludeIds =
+          cards.map((card) => card.id).where((id) => id > 0).toList();
+      final card = await _fetchNext(excludeIds: excludeIds);
+      if (card == null) break;
+      if (card.id > 0 && !seen.add(card.id)) continue;
+      cards.add(card);
+    }
+    return cards;
+  }
+
+  Future<GetCardModel?> _fetchNext({List<int> excludeIds = const []}) async {
+    final query = excludeIds.map((id) => 'exclude_ids=$id').join('&');
+    final url =
+        query.isEmpty ? '$baseURL/swipes/next' : '$baseURL/swipes/next?$query';
+
+    final data = await request(
+      url,
+      serviceType: ServiceType.get,
+      requiredDefaultHeader: true,
+    );
+
+    return _parseCard(data);
+  }
+
+  GetCardModel? _parseCard(dynamic data) {
+    if (data is! Map) return null;
+    final map = Map<String, dynamic>.from(data);
+    if (map['id'] == null || map.containsKey('detail')) {
+      return null;
+    }
+    return GetCardModel.fromJson(map);
+  }
+
+  List<GetCardModel> _parseCardList(dynamic data) {
+    if (data is! List) return [];
+    return [
+      for (final item in data)
+        if (item is Map && item['id'] != null && !item.containsKey('detail'))
+          GetCardModel.fromJson(Map<String, dynamic>.from(item)),
+    ];
   }
 }

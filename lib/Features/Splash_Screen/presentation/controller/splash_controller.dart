@@ -1,20 +1,26 @@
 import 'package:catalyst_flutter_app/Core/Constants/config.dart';
-import 'package:catalyst_flutter_app/Features/splash_screen/domain/splash_repository.dart';
+import 'package:catalyst_flutter_app/app_repo.dart';
 import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
 
 class SplashController extends GetxController {
-  late SplashRepository repo;
-
-  SplashController({
-    required this.repo,
-  });
-
   Future<void> checkUserStatusFromLocalCache() async {
-    await Future.delayed(const Duration(seconds: 2));
+    if (!AppRepo().hasAccessToken) {
+      Get.offAllNamed(AppConfig().routes.auth);
+      return;
+    }
 
-    Get.offNamed(AppConfig().routes.register);
+    if (AppRepo().isAdminSession) {
+      Get.offAllNamed(AppConfig().routes.adminWelcome);
+      return;
+    }
+
+    Get.offAllNamed(
+      AppRepo().isOnboardingDone
+          ? AppConfig().routes.base
+          : AppConfig().routes.initform,
+    );
   }
 
   @override

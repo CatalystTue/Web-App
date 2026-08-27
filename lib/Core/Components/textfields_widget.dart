@@ -14,6 +14,8 @@ class CustomTextField extends StatefulWidget {
   final FormFieldValidator<String>? validator;
   final bool isPassword;
   final Function(String)? onChanged;
+  final ValueChanged<String>? onSubmitted;
+  final TextInputAction? textInputAction;
   final VoidCallback? onSecondIconPressed;
 
   const CustomTextField({
@@ -28,6 +30,8 @@ class CustomTextField extends StatefulWidget {
     this.keyboardType,
     this.isPassword = false,
     this.onChanged,
+    this.onSubmitted,
+    this.textInputAction,
     this.onSecondIconPressed,
   });
 
@@ -74,6 +78,8 @@ class _CustomTextFieldState extends State<CustomTextField> {
         });
       },
       keyboardType: widget.keyboardType,
+      textInputAction: widget.textInputAction,
+      onFieldSubmitted: widget.onSubmitted,
       enabled: widget.disableTextField,
       controller: widget.controller,
       obscureText: widget.isPassword ? (!_showPasswordField) : false,

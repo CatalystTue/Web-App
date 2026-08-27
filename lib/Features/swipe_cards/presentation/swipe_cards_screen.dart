@@ -3,7 +3,6 @@ import 'package:catalyst_flutter_app/app_repo.dart';
 import 'package:catalyst_flutter_app/Core/Constants/dimens.dart';
 import 'package:catalyst_flutter_app/Core/Constants/color.dart';
 import 'package:catalyst_flutter_app/Core/Constants/config.dart';
-import 'package:catalyst_flutter_app/Core/Components/tag_container_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
@@ -62,54 +61,35 @@ class SwipeCardsScreen extends GetView<SwipeCardsController> {
                               Align(
                                 alignment: Alignment.center,
                                 child: Text(
-                                  card.title,
+                                  card.name,
                                   style: const TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold),
                                 ),
                               ),
                               Gap(Dimens().large),
-                              SizedBox(
-                                width: double.infinity,
-                                child: Wrap(
-                                  alignment: WrapAlignment.start,
-                                  spacing: Dimens().mediumSmall,
-                                  runSpacing: Dimens().mediumSmall,
-                                  children: List.generate(card.tags.length,
-                                      (skillIndex) {
-                                    return TagContainerWidget(
-                                      lable: card.tags[skillIndex],
-                                      icon: Icons.label,
-                                    );
-                                  }),
+                              if (card.affiliation.isNotEmpty)
+                                _MetaRow(
+                                  label: 'Affiliation',
+                                  value: card.affiliation,
                                 ),
-                              ),
-                              Gap(Dimens().large),
-                              Row(
-                                children: [
-                                  Text(
-                                    textAlign: TextAlign.start,
-                                    "Status:",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppConfig().colors.txtHeaderColor,
-                                    ),
-                                  ),
-                                  Gap(AppConfig().dimens.mediumSmall),
-                                  Text(
-                                    "Approved",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppConfig().colors.txtBodyColor,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              if (card.position.isNotEmpty) ...[
+                                Gap(Dimens().medium),
+                                _MetaRow(
+                                  label: 'Position',
+                                  value: card.position,
+                                ),
+                              ],
+                              if (card.location.isNotEmpty) ...[
+                                Gap(Dimens().medium),
+                                _MetaRow(
+                                  label: 'Location',
+                                  value: card.location,
+                                ),
+                              ],
                               Gap(Dimens().medium),
                               Text(
-                                "Summary:",
+                                "Description",
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
@@ -117,12 +97,17 @@ class SwipeCardsScreen extends GetView<SwipeCardsController> {
                                 ),
                               ),
                               Gap(Dimens().small),
-                              Text(
-                                card.description,
-                                style: TextStyle(
-                                    fontSize: 16,
-                                    color: AppConfig().colors.txtBodyColor,
-                                    fontWeight: FontWeight.w600),
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  child: Text(
+                                    card.description,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: AppConfig().colors.txtBodyColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -170,15 +155,7 @@ class SwipeCardsScreen extends GetView<SwipeCardsController> {
                       color: AppConfig().colors.primaryColor,
                     ),
                     onPressed: () {
-                      if (controller.swipeController.cardIndex != null) {
-                        controller.swipeCard(
-                            interested: "true",
-                            cardId: AppRepo()
-                                .cards[
-                                    controller.swipeController.cardIndex ?? 0]
-                                .cardId
-                                .toString());
-                      }
+                      controller.swipeController.swipeLeft();
                     },
                   ),
                 ),
@@ -228,15 +205,7 @@ class SwipeCardsScreen extends GetView<SwipeCardsController> {
                       size: 36,
                     ),
                     onPressed: () {
-                      if (controller.swipeController.cardIndex != null) {
-                        controller.swipeCard(
-                            interested: "true",
-                            cardId: AppRepo()
-                                .cards[
-                                    controller.swipeController.cardIndex ?? 0]
-                                .cardId
-                                .toString());
-                      }
+                      controller.swipeController.swipeRight();
                     },
                   ),
                 ),
@@ -245,6 +214,43 @@ class SwipeCardsScreen extends GetView<SwipeCardsController> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _MetaRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _MetaRow({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppConfig().colors.txtHeaderColor,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppConfig().colors.txtBodyColor,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

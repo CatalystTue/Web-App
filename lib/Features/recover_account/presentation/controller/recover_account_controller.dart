@@ -10,6 +10,8 @@ class RecoverAccountController extends GetxController {
   final loading = false.obs;
   final AuthenticationService _authService = AuthenticationService();
   Future<void> recoverAccount() async {
+    if (loading.value) return;
+
     final email = emailCtrl.text.trim();
     if (email.isEmpty || !email.isEmail) {
       AppRepo().showSnackbar(
@@ -21,19 +23,14 @@ class RecoverAccountController extends GetxController {
     }
 
     loading.value = true;
-    await Future.delayed(const Duration(milliseconds: 600));
+    await _authService.sendResetPasswordEmail(email);
     loading.value = false;
-
-    // to the server send the post request with the email
-    final response = await _authService.sendResetPasswordEmail(email);
     AppRepo().showSnackbar(
       label: 'Recovery',
       text:
           'If this email exists, we will send you account recovery instructions.',
       position: SnackPosition.TOP,
     );
-    // await AppRepo().sendResetPasswordEmail(email);
-    await Future.delayed(const Duration(seconds: 3));
     Get.offAndToNamed(AppConfig().routes.auth);
   }
 

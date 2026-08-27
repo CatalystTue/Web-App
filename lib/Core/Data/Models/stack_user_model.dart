@@ -1,29 +1,3 @@
-class StackUserModel {
-  final int id;
-  final String name;
-  final String description;
-  final String affiliation;
-  final String position;
+import 'package:catalyst_flutter_app/Core/Data/Models/card_model.dart';
 
-  const StackUserModel({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.affiliation,
-    required this.position,
-  });
-
-  factory StackUserModel.fromJson(Map<String, dynamic> json) {
-    return StackUserModel(
-      name: json['name']?.toString() ??
-          json['username']?.toString() ??
-          json['title']?.toString() ??
-          json['id']?.toString() ??
-          '',
-      description: json['description']?.toString() ?? '',
-      affiliation: json['affiliation']?.toString() ?? '',
-      position: json['position']?.toString() ?? '',
-      id: json['id']?.toInt() ?? 0,
-    );
-  }
-}
+typedef StackUserModel = GetCardModel;

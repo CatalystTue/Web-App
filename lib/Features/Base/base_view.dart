@@ -140,7 +140,18 @@ class AppBaseView extends GetView<BaseViewModel> {
                                   title: Text(idea.name),
                                   subtitle: Padding(
                                     padding: const EdgeInsets.only(top: 8),
-                                    child: Text(idea.description),
+                                    child: Text(
+                                      [
+                                        if (idea.affiliation.isNotEmpty)
+                                          idea.affiliation,
+                                        if (idea.position.isNotEmpty)
+                                          idea.position,
+                                        if (idea.location.isNotEmpty)
+                                          idea.location,
+                                        if (idea.description.isNotEmpty)
+                                          idea.description,
+                                      ].join('\n'),
+                                    ),
                                   ),
                                 ),
                               );

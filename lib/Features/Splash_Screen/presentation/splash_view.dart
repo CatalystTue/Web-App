@@ -1,6 +1,5 @@
 import 'package:catalyst_flutter_app/Core/Constants/color.dart';
 import 'package:catalyst_flutter_app/Core/Constants/dimens.dart';
-import 'package:catalyst_flutter_app/Features/splash_screen/data/repository/splash_repository_impl.dart';
 import 'package:catalyst_flutter_app/Features/splash_screen/presentation/controller/splash_controller.dart';
 import 'package:catalyst_flutter_app/gen/assets.gen.dart';
 import 'package:flutter/material.dart';
@@ -11,7 +10,7 @@ class SplashView extends GetView<SplashController> {
   SplashView({super.key});
 
   @override
-  final controller = Get.put(SplashController(repo: SplashRepositoryImpl()));
+  final controller = Get.put(SplashController());
 
   @override
   Widget build(BuildContext context) {

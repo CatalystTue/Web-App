@@ -1,4 +1,5 @@
 import 'package:catalyst_flutter_app/Core/Constants/config.dart';
+import 'package:catalyst_flutter_app/app_repo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -12,6 +13,8 @@ Future<void> main() async {
       DeviceOrientation.portraitDown,
     ],
   );
+
+  await AppRepo().initLocalCache();
 
   runApp(const MyApp());
 }

@@ -8,7 +8,6 @@ import 'package:get/get.dart';
 class SwipeCardsController extends GetxController {
   late SwipeCardsRepository repo;
 
-  // TODO check despose controller
   final AppinioSwiperController swipeController = AppinioSwiperController();
 
   var isEndOfCards = false.obs;
@@ -18,40 +17,28 @@ class SwipeCardsController extends GetxController {
     required this.repo,
   });
 
-  void _init() async {
-    // note that the stack does NOT consist of all qi cards. instead these cards are provided by the backend in some qay to be defined on the backend
-    // Get.context!.loaderOverlay.show();
+  Future<void> _loadCards() async {
     isLoading.value = true;
-    // TODO make error handling
+    isEndOfCards.value = false;
     final cards = await repo.getStackOfCards();
     AppRepo().cards.clear();
     AppRepo().cards.addAll(cards);
-    // Get.context!.loaderOverlay.hide();
     isLoading.value = false;
-    print('Cards: ${AppRepo().cards}');
+    isEndOfCards.value = cards.isEmpty;
   }
 
   @override
   void onInit() {
     super.onInit();
-    _init();
+    _loadCards();
   }
 
   void onRefresh() async {
-    onEnd();
+    await _loadCards();
   }
 
   void onEnd() async {
-    isEndOfCards.value = true;
-
-    // TODO update the cards on the stack -> does it work the way how coded below?
-    isLoading.value = true;
-    final cards = await repo.getStackOfCards();
-    AppRepo().cards.clear();
-    AppRepo().cards.addAll(cards);
-    // Get.context!.loaderOverlay.hide();
-    isLoading.value = false;
-    print('Cards: ${AppRepo().cards}');
+    await _loadCards();
   }
 
   void swipeEnd(int previousIndex, int targetIndex, SwiperActivity activity) {
@@ -60,9 +47,9 @@ class SwipeCardsController extends GetxController {
       log('previous index: $previousIndex, target index: $targetIndex');
 
       swipeCard(
-          interested: (activity.direction == AxisDirection.right ? true : false)
-              .toString(),
-          cardId: "${AppRepo().cards[previousIndex].cardId}");
+        interested: activity.direction == AxisDirection.right,
+        targetUserId: AppRepo().cards[previousIndex].id,
+      );
     } else if (activity is Unswipe) {
       log('A ${activity.direction.name} swipe was undone.');
       log('previous index: $previousIndex, target index: $targetIndex');
@@ -93,13 +80,12 @@ class SwipeCardsController extends GetxController {
   }
 
   Future<void> swipeCard({
-    required String interested,
-    required String cardId,
+    required bool interested,
+    required int targetUserId,
   }) async {
-    AppRepo().showLoading();
     await repo.swipeCard(
       interested: interested,
-      cardId: cardId,
+      targetUserId: targetUserId,
     );
   }
 }

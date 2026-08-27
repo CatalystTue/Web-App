@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import '../../Constants/config.dart';
-import 'package:http_parser/http_parser.dart' as http_parser;
 
 class ServicesHelper {
   final String baseURL = AppConfig().baseURL;
@@ -15,10 +14,16 @@ class ServicesHelper {
   final int timeout = 5;
   final int timeoutLlm = 30;
 
-  Map<String, String> get defaultHeaders => {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${AppRepo().jwtToken}'
-      };
+  Map<String, String> get defaultHeaders {
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+    };
+    final token = AppRepo().jwtToken?.trim();
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
+  }
 
   String queryMaker(Map<String, dynamic> parameters) {
     String query = '';
@@ -80,6 +85,9 @@ class ServicesHelper {
                   headers: headers ?? newHeaders)
               .timeout(durationTimeOut);
         case ServiceType.patch:
+          response = await client
+              .patch(uri, body: encodedBody, headers: headers ?? newHeaders)
+              .timeout(durationTimeOut);
         case ServiceType.put:
           response = await client
               .put(uri, body: encodedBody, headers: headers ?? newHeaders)
@@ -90,7 +98,7 @@ class ServicesHelper {
         AppRepo().networkConnectivity = true;
       }
 
-      return _responseHandler(
+      return await _responseHandler(
           response,
           () => request(url,
               serviceType: serviceType,
@@ -101,74 +109,30 @@ class ServicesHelper {
               timeoutSeconds: timeoutSeconds));
     } on TimeoutException catch (_) {
       debugPrint('Connection timeout');
-      return null;
-    } on SocketException catch (socketError) {
-      debugPrint('socketError: $socketError');
-      AppRepo().networkConnectivity = false;
-      AppRepo().networkConnectivityStream.add(1);
-
-      return null;
-    } catch (error) {
-      debugPrint(error.toString());
-      return null;
-    }
-  }
-
-  Future<dynamic> uploadRequest(
-    String url, {
-    required String filePath,
-    required http_parser.MediaType mediaType,
-    Map<String, String>? body,
-    Map<String, String>? headers,
-    bool requiredDefaultHeader = false,
-  }) async {
-    print('jwtToken ${AppRepo().jwtToken}');
-    final uri = Uri.parse(url);
-
-    try {
-      http.Response? response;
-      final durationTimeOut = Duration(seconds: timeout);
-      final client = http.MultipartRequest('POST', uri);
-
-      if (body != null) {
-        client.fields.addAll(body);
-      }
-      if (headers != null) {
-        client.headers.addAll(headers);
-      } else {
-        if (requiredDefaultHeader) {
-          client.headers.addAll(defaultHeaders);
-        }
-      }
-
-      client.files.add(await http.MultipartFile.fromPath('file', filePath,
-          contentType: mediaType));
-
-      response = await http.Response.fromStream(
-          await client.send().timeout(durationTimeOut));
-
-      return _responseHandler(
-        response,
-        () => uploadRequest(
-          url,
-          filePath: filePath,
-          mediaType: mediaType,
-          body: body,
-          headers: headers,
-          requiredDefaultHeader: requiredDefaultHeader,
-        ),
+      AppRepo().showSnackbar(
+        label: 'Error',
+        text: 'Could not reach the server. Please try again.',
+        position: SnackPosition.TOP,
       );
-    } on TimeoutException catch (_) {
-      debugPrint('Connection timeout');
       return null;
     } on SocketException catch (socketError) {
       debugPrint('socketError: $socketError');
       AppRepo().networkConnectivity = false;
       AppRepo().networkConnectivityStream.add(1);
+      AppRepo().showSnackbar(
+        label: 'Error',
+        text: 'Could not reach the server. Please try again.',
+        position: SnackPosition.TOP,
+      );
 
       return null;
     } catch (error) {
       debugPrint(error.toString());
+      AppRepo().showSnackbar(
+        label: 'Error',
+        text: 'Could not reach the server. Please try again.',
+        position: SnackPosition.TOP,
+      );
       return null;
     }
   }
@@ -176,28 +140,63 @@ class ServicesHelper {
   Future<dynamic> _responseHandler(
       http.Response response, Function? originalRequest) async {
     debugPrint('statusCode : ${response.statusCode}');
-    debugPrint('body : ${response.body}');
     AppRepo().hideLoading();
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
+    if (response.statusCode == 204) {
+      return <String, dynamic>{};
+    } else if (response.statusCode == 200 || response.statusCode == 201) {
       if (response.body.isEmpty) {
         return null;
       }
-      return jsonDecode(response.body);
-      // Success
-    } else if (response.statusCode == 401) {
-      final message = Map<String, dynamic>.from(jsonDecode(response.body));
-
-      final errorText = message['detail']?.toString() ??
-          message['message']?.toString() ??
-          'Invalid username or password';
-
+      final decoded = jsonDecode(response.body);
+      if (decoded is List) {
+        return decoded;
+      }
+      if (decoded is Map) {
+        return Map<String, dynamic>.from(decoded);
+      }
+      return decoded;
+    } else if (response.statusCode == 409) {
+      final message = _decodeErrorBody(
+        response.body,
+        fallback: 'Request failed with status 409',
+      );
+      final errorText =
+          _detailText(message) ?? 'The request could not be completed.';
       AppRepo().showSnackbar(
-        label: 'Login failed',
+        label: 'Error',
         text: errorText,
         position: SnackPosition.TOP,
       );
+      debugPrint('Error: $message');
+      return message;
+    } else if (_isAuthFailure(response.statusCode, response.body)) {
+      final message = _decodeErrorBody(
+        response.body,
+        fallback: 'Could not validate credentials',
+      );
+      final errorText = _detailText(message) ?? 'Could not validate credentials';
 
+      if (errorText == 'Email not verified') {
+        return message;
+      }
+
+      if (errorText == 'Invalid email or password' ||
+          errorText == 'Invalid username or password') {
+        AppRepo().showSnackbar(
+          label: 'Login failed',
+          text: errorText,
+          position: SnackPosition.TOP,
+        );
+        return null;
+      }
+
+      if (errorText == 'Not an admin token') {
+        Get.offAllNamed(AppConfig().routes.admin);
+        return null;
+      }
+
+      await AppRepo().redirectToAuth();
       return null;
     } else if (response.statusCode == 429) {
       AppRepo().showSnackbar(
@@ -207,31 +206,12 @@ class ServicesHelper {
     } else {
       AppRepo().hideLoading();
 
-      Map<String, dynamic> message;
-
-      try {
-        message = Map<String, dynamic>.from(jsonDecode(response.body));
-      } catch (_) {
-        message = {
-          'detail': 'Request failed with status ${response.statusCode}',
-        };
-      }
-
-      final detail = message['detail'];
-
-      String errorText;
-      if (detail is List) {
-        errorText = detail.map((item) {
-          if (item is Map && item['msg'] != null) {
-            return item['msg'].toString();
-          }
-          return item.toString();
-        }).join('\n');
-      } else {
-        errorText = detail?.toString() ??
-            message['message']?.toString() ??
-            'The request could not be completed.';
-      }
+      final message = _decodeErrorBody(
+        response.body,
+        fallback: 'Request failed with status ${response.statusCode}',
+      );
+      final errorText =
+          _detailText(message) ?? 'The request could not be completed.';
 
       AppRepo().showSnackbar(
         label: 'Error',
@@ -242,5 +222,53 @@ class ServicesHelper {
       debugPrint('Error: $message');
       return message;
     }
+  }
+
+  Map<String, dynamic> _decodeErrorBody(String body,
+      {required String fallback}) {
+    try {
+      return Map<String, dynamic>.from(jsonDecode(body));
+    } catch (_) {
+      return {
+        'detail': fallback,
+      };
+    }
+  }
+
+  String? _detailText(Map<String, dynamic> message) {
+    final detail = message['detail'];
+    if (detail is List) {
+      return detail.map((item) {
+        if (item is Map && item['msg'] != null) {
+          return item['msg'].toString();
+        }
+        return item.toString();
+      }).join('\n');
+    }
+    return detail?.toString() ?? message['message']?.toString();
+  }
+
+  bool _isAuthFailure(int statusCode, String body) {
+    if (statusCode == 401) {
+      return true;
+    }
+    if (statusCode != 403) {
+      return false;
+    }
+    final detail = _credentialErrorDetail(body);
+    return detail == 'Could not validate credentials' ||
+        detail == 'Not authenticated';
+  }
+
+  String? _credentialErrorDetail(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map) {
+        return decoded['detail']?.toString();
+      }
+    } catch (_) {
+      // Body is not JSON.
+    }
+    return null;
   }
 }

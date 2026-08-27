@@ -6,11 +6,11 @@ import 'package:catalyst_flutter_app/Features/auth/presentation/auth_screen.dart
 import 'package:catalyst_flutter_app/Features/auth/presentation/binding/auth_binding.dart';
 import 'package:catalyst_flutter_app/Features/Base/Binding/base_binding.dart';
 import 'package:catalyst_flutter_app/Features/Base/base_view.dart';
-import 'package:catalyst_flutter_app/Features/create_new_idea_card/presentation/binding/create_new_idea_card_binding.dart';
-import 'package:catalyst_flutter_app/Features/create_new_idea_card/presentation/create_new_idea_card_screen.dart';
 import 'package:catalyst_flutter_app/Features/initform/presentation/binding/initform_binding.dart';
 import 'package:catalyst_flutter_app/Features/initform/presentation/initform_screen.dart';
 import 'package:catalyst_flutter_app/Features/initform/presentation/llm_choice_screen.dart';
+import 'package:catalyst_flutter_app/Features/app_settings/presentation/binding/app_settings_binding.dart';
+import 'package:catalyst_flutter_app/Features/idea_card/presentation/binding/idea_card_binding.dart';
 import 'package:catalyst_flutter_app/Features/idea_card/presentation/idea_card_screen.dart';
 import 'package:catalyst_flutter_app/Features/stacked_cards/presentation/stacked_cards_screen.dart';
 
@@ -22,6 +22,7 @@ import 'package:catalyst_flutter_app/Features/reset_password/presentation/reset_
 import 'package:catalyst_flutter_app/Features/verify/presentation/verify_screen.dart';
 
 import 'package:catalyst_flutter_app/Features/splash_screen/presentation/splash_view.dart';
+import 'package:catalyst_flutter_app/Core/Constants/auth_middleware.dart';
 
 import 'package:get/get.dart';
 
@@ -32,7 +33,6 @@ class AppRoutes {
   final ideaCard = '/idea-card';
   final auth = '/auth';
   final settings = '/settings';
-  final createNewIdeaCard = '/create-new-idea-card';
   final verify = '/verify';
   final recoverAccount = '/recover-account';
   final resetPassword = '/reset-password';
@@ -52,6 +52,7 @@ class AppRoutes {
         name: base,
         binding: BaseBinding(),
         page: () => AppBaseView(),
+        middlewares: [AuthMiddleware()],
       ),
       GetPage(
         name: register,
@@ -60,8 +61,9 @@ class AppRoutes {
       ),
       GetPage(
         name: ideaCard,
-        binding: BaseBinding(),
+        binding: IdeaCardBinding(),
         page: () => const IdeaCardScreen(),
+        middlewares: [AuthMiddleware()],
       ),
       GetPage(
         name: auth,
@@ -70,13 +72,9 @@ class AppRoutes {
       ),
       GetPage(
         name: settings,
-        binding: BaseBinding(),
+        binding: AppSettingsBinding(),
         page: () => const AppSettingsScreen(),
-      ),
-      GetPage(
-        name: createNewIdeaCard,
-        binding: CreateNewIdeaCardBinding(),
-        page: () => const CreateNewIdeaCardScreen(),
+        middlewares: [AuthMiddleware()],
       ),
       GetPage(
         name: verify,
@@ -104,10 +102,12 @@ class AppRoutes {
         name: initform,
         binding: InitFormBinding(),
         page: () => const InitFormScreen(),
+        middlewares: [AuthMiddleware()],
       ),
       GetPage(
         name: llmChoice,
         page: () => const LlmChoiceScreen(),
+        middlewares: [AuthMiddleware()],
       ),
       GetPage(
         name: stackedCards,

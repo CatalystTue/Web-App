@@ -39,9 +39,9 @@ class BaseViewModel extends GetxController {
     try {
       _model.stackUsers = await CardsService().getMeStackUsers();
       debugPrint(
-          '[Base] Loaded ${_model.stackUsers.length} users from users/me');
+          '[Base] Loaded ${_model.stackUsers.length} preview cards');
     } catch (e, stackTrace) {
-      debugPrint('[Base] Failed to load users/me: $e');
+      debugPrint('[Base] Failed to load preview cards: $e');
       debugPrint('$stackTrace');
       _model.stackUsers = [];
     }
@@ -66,23 +66,16 @@ class BaseViewModel extends GetxController {
     update();
   }
 
-  Future<void> saveIdea(StackUserModel idea) async {
+  void saveIdea(StackUserModel idea) {
     if (_model.savedIdeas.any((saved) => saved.id == idea.id)) {
-      // saved.name == idea.name && saved.description == idea.description)) {
       return;
     }
     _model.savedIdeas.add(idea);
     update();
-
-    await CardsService().swipeCard(
-      interested: 'true',
-      cardId: idea.id.toString(),
-    );
   }
 
   void removeSavedIdea(StackUserModel idea) {
-    _model.savedIdeas.removeWhere((saved) =>
-        saved.name == idea.name && saved.description == idea.description);
+    _model.savedIdeas.removeWhere((saved) => saved.id == idea.id);
     update();
   }
 }

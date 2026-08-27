@@ -40,9 +40,8 @@ class HomeNavigationBar extends StatelessWidget {
           elevation: 0,
           items: [
             _buildNavItem(Icons.settings, "Settings", 0),
-            _buildNavItem(Icons.lightbulb_outline_rounded, "My Ideas", 1),
+            _buildNavItem(Icons.lightbulb_outline_rounded, "My Card", 1),
             _buildNavItem(Icons.home_filled, "Home", 2),
-            _buildNavItem(Icons.link, "Matches", 3),
             //_buildNavItem(Icons.chat, "Chat", 4), //TODO chat functionality should not be available for the prototype
           ],
         ),

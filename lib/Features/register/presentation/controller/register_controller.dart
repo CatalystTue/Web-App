@@ -8,8 +8,6 @@ class RegisterController extends GetxController {
   final emailCtrl = TextEditingController();
   final passwordCtrl = TextEditingController();
   final reEnterPasswordCtrl = TextEditingController();
-  final firstnameCtrl = TextEditingController();
-  final surnameCtrl = TextEditingController();
   final checkboxValue = RxBool(false);
 
   RxBool loading = false.obs;
@@ -55,8 +53,6 @@ class RegisterController extends GetxController {
     return emailCtrl.text.isNotEmpty &&
         passwordCtrl.text.isNotEmpty &&
         reEnterPasswordCtrl.text.isNotEmpty &&
-        firstnameCtrl.text.isNotEmpty &&
-        surnameCtrl.text.isNotEmpty &&
         checkboxValue.value;
   }
 
@@ -78,12 +74,10 @@ class RegisterController extends GetxController {
 
     final email = emailCtrl.text;
     final password = passwordCtrl.text;
-    final name = '${firstnameCtrl.text} ${surnameCtrl.text}';
 
     loading.value = true;
     final response = await authService.createUser(
       email: email,
-      name: name,
       password: password,
     );
 
@@ -91,7 +85,6 @@ class RegisterController extends GetxController {
       if (response['detail'] != null) {
         // ServicesHelper already displayed the backend error.
       } else {
-        print('Registration successful: $response');
         loading.value = false;
         await _showVerificationSentDialog();
         routeToLogin();
@@ -112,23 +105,38 @@ class RegisterController extends GetxController {
     Get.offAndToNamed(AppConfig().routes.auth);
   }
 
-  Future<void> _showVerificationSentDialog() async {
+  void showTermsOfService() {
     Get.dialog(
-      const PopScope(
-        canPop: false,
-        child: AlertDialog(
-          title: const Text('Verify your email'),
-          content: const Text(
-            'Registration successful. We sent a verification link to your email. '
-            'Please check your inbox before logging in.',
-          ),
+      AlertDialog(
+        title: const Text('Terms of Service'),
+        content: const Text(
+          'This is a prototype. All data will be deleted by 31 December 2026.',
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('OK'),
+          ),
+        ],
       ),
-      barrierDismissible: false,
     );
-    await Future.delayed(const Duration(seconds: 10));
-    if (Get.isDialogOpen ?? false) {
-      Get.back();
-    }
+  }
+
+  Future<void> _showVerificationSentDialog() async {
+    await Get.dialog(
+      AlertDialog(
+        title: const Text('Verify your email'),
+        content: const Text(
+          'If this email exists, we will send you a verification link. '
+          'Check your inbox and spam folder.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 }

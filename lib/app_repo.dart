@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:catalyst_flutter_app/Core/Components/loading_widget.dart';
 import 'package:catalyst_flutter_app/Core/Components/snackbar_widget.dart';
 import 'package:catalyst_flutter_app/Core/Constants/config.dart';
@@ -32,6 +34,80 @@ class AppRepo {
   // External Resources
   String? jwtToken;
   User? user;
+  bool _redirectingToAuth = false;
+
+  bool get hasAccessToken {
+    final token = jwtToken?.trim();
+    return token != null && token.isNotEmpty;
+  }
+
+  bool get isAdminSession => _jwtRole() == 'admin';
+
+  String? _jwtRole() {
+    final token = jwtToken?.trim();
+    if (token == null || token.isEmpty) return null;
+    final parts = token.split('.');
+    if (parts.length < 2) return null;
+    try {
+      final payload =
+          utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
+      final payloadMap = jsonDecode(payload) as Map<String, dynamic>;
+      return payloadMap['role']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool get isOnboardingDone =>
+      localCache.read(AppConfig().localCacheKeys.onboardingDone) == true;
+
+  Future<void> markOnboardingDone() async {
+    await localCache.write(AppConfig().localCacheKeys.onboardingDone, true);
+  }
+
+  Future<void> initLocalCache() async {
+    await localCache.init();
+    restoreSession();
+  }
+
+  void restoreSession() {
+    final stored = localCache.read(AppConfig().localCacheKeys.accessToken);
+    final token = stored?.toString().trim();
+    jwtToken = (token != null && token.isNotEmpty) ? token : null;
+  }
+
+  Future<void> persistAccessToken(String? token) async {
+    final value = token?.trim();
+    if (value == null || value.isEmpty) {
+      await localCache.remove(AppConfig().localCacheKeys.accessToken);
+      return;
+    }
+    await localCache.write(AppConfig().localCacheKeys.accessToken, value);
+  }
+
+  Future<void> clearSession() async {
+    jwtToken = null;
+    user = null;
+    await localCache.remove(AppConfig().localCacheKeys.accessToken);
+    await localCache.write(
+      AppConfig().localCacheKeys.userLoggedInStatus,
+      UserStatus.loggedOut.toLocalCacheInt(),
+    );
+  }
+
+  Future<void> redirectToAuth() async {
+    if (_redirectingToAuth) return;
+    _redirectingToAuth = true;
+    try {
+      final adminRoute = Get.currentRoute.contains('admin');
+      await clearSession();
+      Get.offAllNamed(
+        adminRoute ? AppConfig().routes.admin : AppConfig().routes.auth,
+      );
+    } finally {
+      _redirectingToAuth = false;
+    }
+  }
 
   List<GetCardModel> cards = [];
   Future<void> getStack() async {
@@ -93,11 +169,7 @@ class AppRepo {
     user = User.fromJson(response);
     jwtToken =
         response['access_token']?.toString() ?? response['token']?.toString();
-
-    // await secureLocalCache.write(
-    //   AppConfig().localSecureCacheKeys.userObject,
-    //   jsonEncode(response),
-    // );
+    await persistAccessToken(jwtToken);
 
     AppRepo().localCache.write(
           AppConfig().localCacheKeys.userLoggedInStatus,
@@ -108,14 +180,11 @@ class AppRepo {
   }
 
   Future<void> logoutUser() async {
-    showLoading();
-
-    await AppRepo().localCache.clear();
-    user = null;
-    jwtToken = null;
-
-    await Future.delayed(const Duration(seconds: 2));
-    AppRepo().hideLoading();
+    final onboardingDone = isOnboardingDone;
+    await clearSession();
+    if (onboardingDone) {
+      await markOnboardingDone();
+    }
 
     Get.offAllNamed(AppConfig().routes.splash);
   }

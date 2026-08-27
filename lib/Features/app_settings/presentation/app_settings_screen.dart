@@ -109,8 +109,6 @@
 //     );
 //   }
 // }
-import 'package:catalyst_flutter_app/app_repo.dart';
-import 'package:catalyst_flutter_app/Core/components/switch_btn_widget.dart';
 import 'package:catalyst_flutter_app/Core/constants/config.dart';
 import 'package:catalyst_flutter_app/Features/app_settings/presentation/controller/app_settings_controller.dart';
 import 'package:catalyst_flutter_app/Features/app_settings/presentation/widgets/setting_container_widget.dart';
@@ -142,6 +140,7 @@ class AppSettingsScreen extends GetView<AppSettingsController> {
           children: [
             Gap(AppConfig().dimens.medium),
             SettingContainerWidget(
+              onTap: () => Get.toNamed(AppConfig().routes.ideaCard),
               firstIcon: Icons.person_outlined,
               text: 'Profile',
               secondIcon: Icon(
@@ -149,46 +148,9 @@ class AppSettingsScreen extends GetView<AppSettingsController> {
                 color: AppConfig().colors.primaryColor,
               ),
             ),
-            Gap(AppConfig().dimens.medium),
-            SettingContainerWidget(
-              firstIcon: Icons.notification_important_outlined,
-              text: 'Notifications',
-              secondIcon: Obx(
-                () {
-                  return CustomSwitchButton(
-                    value: controller.isNotificationOn.value,
-                    onChanged: (newValue) =>
-                        controller.isNotificationOn.value = newValue,
-                  );
-                },
-              ),
-            ),
-            Gap(AppConfig().dimens.medium),
-            SettingContainerWidget(
-              firstIcon: Icons.privacy_tip_outlined,
-              text: 'Privacy',
-              secondIcon: Icon(
-                Icons.arrow_forward_ios,
-                color: AppConfig().colors.primaryColor,
-              ),
-            ),
-            Divider(
-              height: 0,
-              thickness: 1.5,
-              color: Colors.grey[300],
-            ),
-            SettingContainerWidget(
-              firstIcon: Icons.lock_outlined,
-              text: 'Security',
-              secondIcon: Icon(
-                Icons.arrow_forward_ios,
-                color: AppConfig().colors.primaryColor,
-              ),
-            ),
             Gap(AppConfig().dimens.extraLarge),
             SettingContainerWidget(
-              onTap: () => AppRepo().showSnackbar(
-                  label: 'General', text: 'You can NOT delete yourself!'),
+              onTap: () => controller.deleteAccount(context),
               firstIcon: Icons.delete_forever_outlined,
               text: 'Delete Account',
               secondIcon: Icon(

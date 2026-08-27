@@ -12,7 +12,6 @@ class AuthScreen extends GetView<AuthController> {
 
   @override
   Widget build(BuildContext context) {
-    TextTheme textTheme = Theme.of(context).textTheme;
     return Scaffold(
       backgroundColor: AppConfig().colors.backGroundColor,
       appBar: AppBar(
@@ -50,6 +49,7 @@ class AuthScreen extends GetView<AuthController> {
               controller: controller.emailCtrl,
               labelText: "Email address",
               leftIcon: Icons.email_outlined,
+              textInputAction: TextInputAction.next,
               validator: (newTextfieldValue) {
                 if (newTextfieldValue!.isEmpty) {
                   return "Could not be empty";
@@ -69,6 +69,8 @@ class AuthScreen extends GetView<AuthController> {
               leftIcon: Icons.lock_outline,
               isPassword: true,
               secondIcon: Icons.remove_red_eye,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => controller.loginUser(),
               validator: (newTextfieldValue) {
                 if (newTextfieldValue!.isEmpty) {
                   return "Could not be empty";
@@ -132,6 +134,27 @@ class AuthScreen extends GetView<AuthController> {
                 txtColor: Colors.white,
                 color: AppColors().primaryColor,
               ),
+              if (controller.showResend.value) ...[
+                Gap(AppConfig().dimens.medium),
+                Text(
+                  "Email not verified",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppConfig().colors.txtColor,
+                  ),
+                ),
+                Gap(AppConfig().dimens.small),
+                CustomOutlineIconButton(
+                  title: controller.resending.value
+                      ? "Sending..."
+                      : "Resend verification email",
+                  onTap: controller.resending.value
+                      ? null
+                      : controller.resendVerification,
+                ),
+              ],
               Gap(AppConfig().dimens.medium),
               GestureDetector(
                 onTap: () => controller.routeToRegisterScreen(),

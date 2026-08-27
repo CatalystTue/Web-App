@@ -2,10 +2,10 @@ import 'package:catalyst_flutter_app/Core/Constants/config.dart';
 import 'package:get_storage/get_storage.dart';
 
 class LocalCacheHelper {
-  final storage = GetStorage(AppConfig().localCacheKeys.databaseName);
+  GetStorage get storage => GetStorage(AppConfig().localCacheKeys.databaseName);
 
   Future<void> init() async {
-    await GetStorage.init();
+    await GetStorage.init(AppConfig().localCacheKeys.databaseName);
   }
 
   Future<void> write(String key, dynamic value) async {

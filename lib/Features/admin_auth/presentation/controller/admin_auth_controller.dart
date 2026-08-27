@@ -18,11 +18,10 @@ class AdminAuthController extends GetxController {
 
     final username = usernameCtrl.text.trim();
     final password = passwordCtrl.text;
-    debugPrint('Username: $username, Password: $password');
     if (username.isEmpty || password.isEmpty) {
       AppRepo().showSnackbar(
         label: 'Error',
-        text: 'Please enter a valid email and password.',
+        text: 'Please enter a username and password.',
         position: SnackPosition.TOP,
       );
       return;
@@ -36,6 +35,12 @@ class AdminAuthController extends GetxController {
     loading.value = false;
 
     if (response == null) {
+      return;
+    }
+
+    final token =
+        response['access_token']?.toString() ?? response['token']?.toString();
+    if (token == null || token.isEmpty) {
       AppRepo().showSnackbar(
         label: 'Error',
         text: 'Admin login failed.',
@@ -43,25 +48,18 @@ class AdminAuthController extends GetxController {
       );
       return;
     }
-
-    final token =
-        response['access_token']?.toString() ?? response['token']?.toString();
-    if (token != null && token.isNotEmpty) {
-      CookieStorage.saveToken(token);
-    }
+    CookieStorage.saveToken(token);
     final name = response['name']?.toString();
-    if (name != null && name.isNotEmpty) {
-      CookieStorage.saveAdminName(name);
-    }
+    CookieStorage.saveAdminName(
+      (name != null && name.isNotEmpty) ? name : username,
+    );
     final expiresAt = _extractExpiryFromJwt(token);
     if (expiresAt != null) {
       CookieStorage.saveAdminExpiresAt(expiresAt.toIso8601String());
     }
 
     final normalizedResponse = Map<String, dynamic>.from(response);
-    if (normalizedResponse['token'] == null && token != null) {
-      normalizedResponse['token'] = token;
-    }
+    normalizedResponse['token'] ??= token;
 
     await AppRepo().loginUser(normalizedResponse);
     Get.offAllNamed(AppConfig().routes.adminWelcome);

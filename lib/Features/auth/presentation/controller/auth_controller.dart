@@ -14,37 +14,81 @@ class AuthController extends GetxController {
   final isPassword = true.obs;
 
   RxBool loading = false.obs;
+  RxBool showResend = false.obs;
+  RxBool resending = false.obs;
 
   AuthController({
     required this.repo,
   });
 
+  bool _hasAccessToken(Map<String, dynamic>? response) {
+    final token = response?['access_token']?.toString() ??
+        response?['token']?.toString();
+    return token != null && token.isNotEmpty;
+  }
+
   Future<void> loginUser() async {
     if (loading.value) return;
 
-    final username = emailCtrl.text;
+    final username = emailCtrl.text.trim();
     final password = passwordCtrl.text;
 
-    print('Attempting to log in with username: $username, password: $password');
+    if (username.isEmpty || password.isEmpty || !username.isEmail) {
+      AppRepo().showSnackbar(
+        label: 'Error',
+        text: 'Enter a valid email and password.',
+        position: SnackPosition.TOP,
+      );
+      return;
+    }
 
-    if (username.isNotEmpty && password.isNotEmpty && username.isEmail) {
-      loading.value = true;
+    loading.value = true;
+    showResend.value = false;
 
-      final response = await repo.login(username: username, password: password);
+    final response = await repo.login(username: username, password: password);
 
-      if (response != null) {
-        await AppRepo().loginUser(response);
-        final profileComplete = await AuthenticationService().isProfileComplete();
-
-        // Do not guess when the profile check failed: sending the user through
-        // setup is safer than presenting the app with an incomplete profile.
-        Get.offAllNamed(profileComplete == true
+    if (_hasAccessToken(response)) {
+      await AppRepo().loginUser(response!);
+      Get.offAllNamed(
+        AppRepo().isOnboardingDone
             ? AppConfig().routes.base
-            : AppConfig().routes.initform);
-      } else {
-        loading.value = false;
-        print('Login failed');
-      }
+            : AppConfig().routes.initform,
+      );
+      return;
+    }
+
+    if (response?['detail']?.toString() == 'Email not verified') {
+      showResend.value = true;
+    }
+
+    loading.value = false;
+  }
+
+  Future<void> resendVerification() async {
+    if (resending.value) return;
+
+    final email = emailCtrl.text.trim();
+    if (email.isEmpty || !email.isEmail) {
+      AppRepo().showSnackbar(
+        label: 'Error',
+        text: 'Enter a valid email to resend verification.',
+        position: SnackPosition.TOP,
+      );
+      return;
+    }
+
+    resending.value = true;
+    final response =
+        await AuthenticationService().resendVerificationEmail(email);
+    resending.value = false;
+
+    if (response != null && !response.containsKey('detail')) {
+      AppRepo().showSnackbar(
+        label: 'Sent',
+        text:
+            'If this email exists, we will send you a verification link.',
+        position: SnackPosition.TOP,
+      );
     }
   }
 

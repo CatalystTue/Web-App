@@ -18,29 +18,36 @@ class SettingContainerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Material(
       color: Colors.white,
-      child: GestureDetector(
+      child: InkWell(
         onTap: onTap,
-        child: Row(
-          children: [
-            Icon(
-              firstIcon,
-              color: AppConfig().colors.primaryColor,
-            ),
-            Gap(AppConfig().dimens.medium),
-            Text(
-              text,
-              style: TextStyle(
-                color: AppConfig().colors.txtHeaderColor,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+        mouseCursor: onTap != null
+            ? SystemMouseCursors.click
+            : MouseCursor.defer,
+        child: SizedBox(
+          width: double.infinity,
+          child: Row(
+            children: [
+              Icon(
+                firstIcon,
+                color: AppConfig().colors.primaryColor,
               ),
-            ),
-            const Spacer(),
-            secondIcon,
-          ],
-        ).paddingAll(AppConfig().dimens.medium),
+              Gap(AppConfig().dimens.medium),
+              Expanded(
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    color: AppConfig().colors.txtHeaderColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              secondIcon,
+            ],
+          ).paddingAll(AppConfig().dimens.medium),
+        ),
       ),
     );
   }

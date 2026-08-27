@@ -52,6 +52,8 @@ class RecoverAccountScreen extends GetView<RecoverAccountController> {
             CustomTextField(
               controller: controller.emailCtrl,
               labelText: "Email address",
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => controller.recoverAccount(),
               validator: (newTextfieldValue) {
                 if (newTextfieldValue == null || newTextfieldValue.isEmpty) {
                   return "Could not be empty";

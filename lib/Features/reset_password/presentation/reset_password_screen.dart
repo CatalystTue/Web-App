@@ -20,46 +20,46 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final TextEditingController _passwordCtrl = TextEditingController();
   final TextEditingController _repeatPasswordCtrl = TextEditingController();
 
-  bool _loading = true;
   bool _tokenValid = false;
   bool _submitting = false;
-  String _message = 'Checking reset link...';
+  String _message = 'The reset link is invalid.';
   String? _token;
 
   @override
   void initState() {
     super.initState();
-    _validateToken();
+    final token = _tokenFromQuery();
+    if (token == null) {
+      _tokenValid = false;
+      _message = 'The reset link is invalid.';
+      return;
+    }
+    _token = token;
+    _tokenValid = true;
   }
 
-  Future<void> _validateToken() async {
-    final token = Get.parameters['token'];
-    if (token == null || token.isEmpty) {
-      setState(() {
-        _loading = false;
-        _tokenValid = false;
-        _message = 'The reset link is invalid.';
-      });
-      return;
+  String? _tokenFromQuery() {
+    final fromParameters = Get.parameters['token']?.trim();
+    if (fromParameters != null && fromParameters.isNotEmpty) {
+      return fromParameters;
     }
-
-    final response = await _authService.validateResetToken(token);
-    if (!mounted) return;
-
-    if (response == null) {
-      setState(() {
-        _loading = false;
-        _tokenValid = false;
-        _message = 'The reset link is invalid.';
-      });
-      return;
+    final fromBase = Uri.base.queryParameters['token']?.trim();
+    if (fromBase != null && fromBase.isNotEmpty) {
+      return fromBase;
     }
+    final fragment = Uri.base.fragment;
+    if (fragment.contains('?')) {
+      final query = fragment.substring(fragment.indexOf('?') + 1);
+      final token = Uri.splitQueryString(query)['token']?.trim();
+      if (token != null && token.isNotEmpty) {
+        return token;
+      }
+    }
+    return null;
+  }
 
-    setState(() {
-      _token = token;
-      _loading = false;
-      _tokenValid = true;
-    });
+  bool _isSuccess(Map<String, dynamic>? response) {
+    return response != null && !response.containsKey('detail');
   }
 
   bool _isStrongPassword(String password) {
@@ -117,12 +117,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       _submitting = false;
     });
 
-    if (response == null) {
-      AppRepo().showSnackbar(
-        label: 'Error',
-        text: 'Could not reset password. The link may be invalid or expired.',
-        position: SnackPosition.TOP,
-      );
+    if (!_isSuccess(response)) {
+      if (response == null) {
+        AppRepo().showSnackbar(
+          label: 'Error',
+          text: 'Could not reset password. The link may be invalid or expired.',
+          position: SnackPosition.TOP,
+        );
+      }
       return;
     }
 
@@ -162,71 +164,72 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         backgroundColor: AppConfig().colors.backGroundColor,
         elevation: 0,
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _tokenValid
-              ? SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Align(
-                        alignment: Alignment.topRight,
-                        child: Text(
-                          "The fields marked with * are mandatory",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: AppConfig().colors.txtColor,
-                          ),
-                        ),
-                      ),
-                      Gap(AppConfig().dimens.medium),
-                      CustomTextField(
-                        controller: _passwordCtrl,
-                        labelText: "Password *",
-                        isPassword: true,
-                        secondIcon: Icons.remove_red_eye,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Could not be empty";
-                          }
-                          if (!_isStrongPassword(value)) {
-                            return "Password is not strong";
-                          }
-                          return null;
-                        },
-                      ),
-                      Gap(AppConfig().dimens.medium),
-                      CustomTextField(
-                        controller: _repeatPasswordCtrl,
-                        labelText: "Re-enter password *",
-                        isPassword: true,
-                        secondIcon: Icons.remove_red_eye,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Could not be empty";
-                          }
-                          if (value != _passwordCtrl.text) {
-                            return "Passwords do not match";
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
-                  ).paddingAll(AppConfig().dimens.medium),
-                )
-              : Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
+      body: _tokenValid
+          ? SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Align(
+                    alignment: Alignment.topRight,
                     child: Text(
-                      _message,
-                      textAlign: TextAlign.center,
-                      style: textTheme.titleMedium,
+                      "The fields marked with * are mandatory",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppConfig().colors.txtColor,
+                      ),
                     ),
                   ),
+                  Gap(AppConfig().dimens.medium),
+                  CustomTextField(
+                    controller: _passwordCtrl,
+                    labelText: "Password *",
+                    isPassword: true,
+                    secondIcon: Icons.remove_red_eye,
+                    textInputAction: TextInputAction.next,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return "Could not be empty";
+                      }
+                      if (!_isStrongPassword(value)) {
+                        return "Password is not strong";
+                      }
+                      return null;
+                    },
+                  ),
+                  Gap(AppConfig().dimens.medium),
+                  CustomTextField(
+                    controller: _repeatPasswordCtrl,
+                    labelText: "Re-enter password *",
+                    isPassword: true,
+                    secondIcon: Icons.remove_red_eye,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _submitReset(),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return "Could not be empty";
+                      }
+                      if (value != _passwordCtrl.text) {
+                        return "Passwords do not match";
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ).paddingAll(AppConfig().dimens.medium),
+            )
+          : Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  _message,
+                  textAlign: TextAlign.center,
+                  style: textTheme.titleMedium,
                 ),
-      bottomNavigationBar: !_loading && _tokenValid
+              ),
+            ),
+      bottomNavigationBar: _tokenValid
           ? Column(
               mainAxisSize: MainAxisSize.min,
               children: [

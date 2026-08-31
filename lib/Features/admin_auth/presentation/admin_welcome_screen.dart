@@ -271,6 +271,7 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
     setState(() {
       _selectedSqlTableIndex = index;
       _loadingSqlColumns = true;
+      _loadingSqlData = true;
       _sqlColumnsError = null;
       _sqlColumns = const [];
       _sqlRowsData = const [];
@@ -278,73 +279,31 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
     });
 
     try {
-      final columns = await _authService.getAdminSqlColumns(tableName);
+      final data = await _authService.getAdminSqlTableData(tableName);
       if (!mounted) return;
-      setState(() {
-        _sqlColumns = columns;
-      });
-      if (columns.isNotEmpty) {
-        await _loadSqlData(tableName, columns);
+      if (data == null) {
+        setState(() {
+          _sqlColumns = const [];
+          _sqlRowsData = const [];
+          _sqlColumnsError = 'Could not load SQL table.';
+        });
+        return;
       }
+      setState(() {
+        _sqlColumns = data.columns;
+        _sqlRowsData = data.rows;
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _sqlColumns = const [];
-        _sqlColumnsError = 'Could not load SQL columns.';
+        _sqlRowsData = const [];
+        _sqlColumnsError = 'Could not load SQL table.';
       });
     } finally {
       if (!mounted) return;
       setState(() {
         _loadingSqlColumns = false;
-      });
-    }
-  }
-
-  Future<void> _loadSqlData(String tableName, List<String> columns) async {
-    setState(() {
-      _loadingSqlData = true;
-      _sqlDataError = null;
-      _sqlRowsData = const [];
-    });
-
-    try {
-      final List<List<String>> columnData = [];
-      for (final column in columns) {
-        final data = await _authService.getAdminSqlColumnData(
-          tableName: tableName,
-          columnName: column,
-        );
-        columnData.add(data);
-      }
-
-      if (!mounted) return;
-
-      int maxRows = 0;
-      for (final values in columnData) {
-        if (values.length > maxRows) {
-          maxRows = values.length;
-        }
-      }
-
-      final rows = List.generate(maxRows, (rowIndex) {
-        return List.generate(columns.length, (colIndex) {
-          final values = columnData[colIndex];
-          return rowIndex < values.length ? values[rowIndex] : '';
-        });
-      });
-
-      setState(() {
-        _sqlRowsData = rows;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _sqlRowsData = const [];
-        _sqlDataError = 'Could not load SQL data.';
-      });
-    } finally {
-      if (!mounted) return;
-      setState(() {
         _loadingSqlData = false;
       });
     }

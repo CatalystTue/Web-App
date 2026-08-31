@@ -120,25 +120,28 @@ class AuthenticationService extends ServicesHelper {
     return _stringList(response);
   }
 
-  Future<List<String>> getAdminSqlColumns(String tableName) async {
+  Future<({List<String> columns, List<List<String>> rows})?>
+      getAdminSqlTableData(String tableName) async {
+    final uri = Uri.parse('$_adminURL/sql/rows').replace(
+      queryParameters: <String, String>{'table': tableName},
+    );
     final response = await request(
-      _adminSqlUri(table: tableName).toString(),
+      uri.toString(),
       serviceType: ServiceType.get,
       requiredDefaultHeader: true,
     );
-    return _stringList(response);
-  }
-
-  Future<List<String>> getAdminSqlColumnData({
-    required String tableName,
-    required String columnName,
-  }) async {
-    final response = await request(
-      _adminSqlUri(table: tableName, column: columnName).toString(),
-      serviceType: ServiceType.get,
-      requiredDefaultHeader: true,
-    );
-    return _stringList(response);
+    if (response is! Map) return null;
+    if (response.containsKey('detail')) return null;
+    final columns = _stringList(response['columns']);
+    final rawRows = response['rows'];
+    if (rawRows is! List) return null;
+    final rows = rawRows.map((row) {
+      if (row is List) {
+        return row.map((cell) => cell?.toString() ?? '').toList();
+      }
+      return <String>[];
+    }).toList();
+    return (columns: columns, rows: rows);
   }
 
   Future<String?> getAdminMailingPageHtml(String pageName) async {

@@ -8,6 +8,7 @@ import 'package:catalyst_flutter_app/Core/Data/Models/card_model.dart';
 import 'package:catalyst_flutter_app/Core/Data/Models/user_model.dart';
 import 'package:catalyst_flutter_app/Core/Data/Services/auth_service.dart';
 import 'package:catalyst_flutter_app/Core/Data/Services/card_service.dart';
+import 'package:catalyst_flutter_app/Core/Utils/cookie_storage.dart';
 import 'package:catalyst_flutter_app/Core/Utils/enum.dart';
 import 'package:catalyst_flutter_app/Core/Utils/extentions.dart';
 import 'package:flutter/material.dart';
@@ -90,6 +91,7 @@ class AppRepo {
     jwtToken = null;
     user = null;
     onboardingComplete = false;
+    CookieStorage.clearAdminSession();
     await localCache.remove(AppConfig().localCacheKeys.accessToken);
     await localCache.write(
       AppConfig().localCacheKeys.userLoggedInStatus,

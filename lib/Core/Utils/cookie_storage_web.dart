@@ -27,3 +27,7 @@ String? readCookie(String key) {
   }
   return null;
 }
+
+void deleteCookie(String key, {String path = '/'}) {
+  html.document.cookie = '$key=; Max-Age=0; Path=$path; SameSite=Lax';
+}

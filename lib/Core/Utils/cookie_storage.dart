@@ -43,4 +43,10 @@ class CookieStorage {
   static String? readAdminExpiresAt() {
     return readCookie('admin_expires_at');
   }
+
+  static void clearAdminSession() {
+    deleteCookie('admin_token');
+    deleteCookie('admin_name');
+    deleteCookie('admin_expires_at');
+  }
 }

@@ -6,3 +6,5 @@ void saveCookie(
 }) {}
 
 String? readCookie(String key) => null;
+
+void deleteCookie(String key, {String path = '/'}) {}

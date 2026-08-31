@@ -78,6 +78,11 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
     return false;
   }
 
+  Future<void> _logout() async {
+    await AppRepo().clearSession();
+    Get.offAllNamed(AppConfig().routes.admin);
+  }
+
   Future<void> _createNewMailingPage() async {
     final TextEditingController pageNameCtrl = TextEditingController();
     final result = await showDialog<String>(
@@ -740,6 +745,17 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
         ),
         backgroundColor: AppConfig().colors.backGroundColor,
         foregroundColor: Colors.black,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: TextButton.icon(
+              onPressed: _logout,
+              icon: const Icon(Icons.logout),
+              label: const Text('Logout'),
+              style: TextButton.styleFrom(foregroundColor: Colors.black),
+            ),
+          ),
+        ],
       ),
       body: Row(
         children: [

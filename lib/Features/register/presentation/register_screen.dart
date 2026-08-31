@@ -164,9 +164,26 @@ class RegisterScreen extends GetView<RegisterController> {
                         alignment: PlaceholderAlignment.baseline,
                         baseline: TextBaseline.alphabetic,
                         child: GestureDetector(
-                          onTap: controller.showTermsOfService,
+                          onTap: controller.showTermsOfUse,
                           child: Text(
-                            "Terms of Service",
+                            "Terms of Use",
+                            style: textTheme.titleMedium!.copyWith(
+                              color: AppColors().darkGrayColor,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const TextSpan(
+                          text: " and ",
+                          style: TextStyle(color: Colors.black)),
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.baseline,
+                        baseline: TextBaseline.alphabetic,
+                        child: GestureDetector(
+                          onTap: controller.showPrivacyNotice,
+                          child: Text(
+                            "Privacy Notice",
                             style: textTheme.titleMedium!.copyWith(
                               color: AppColors().darkGrayColor,
                               decoration: TextDecoration.underline,

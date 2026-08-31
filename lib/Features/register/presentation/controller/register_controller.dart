@@ -1,5 +1,6 @@
 import 'package:catalyst_flutter_app/Core/Constants/config.dart';
 import 'package:catalyst_flutter_app/Core/Data/Services/auth_service.dart';
+import 'package:catalyst_flutter_app/Core/Utils/legal_documents.dart';
 import 'package:catalyst_flutter_app/app_repo.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -105,21 +106,12 @@ class RegisterController extends GetxController {
     Get.offAndToNamed(AppConfig().routes.auth);
   }
 
-  void showTermsOfService() {
-    Get.dialog(
-      AlertDialog(
-        title: const Text('Terms of Service'),
-        content: const Text(
-          'This is a prototype. All data will be deleted by 31 December 2026.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+  void showTermsOfUse() {
+    LegalDocuments.openTermsOfUse();
+  }
+
+  void showPrivacyNotice() {
+    LegalDocuments.openPrivacyNotice();
   }
 
   Future<void> _showVerificationSentDialog() async {

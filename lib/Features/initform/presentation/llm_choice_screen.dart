@@ -99,6 +99,16 @@ class _LlmChoiceScreenState extends State<LlmChoiceScreen> {
                 fontWeight: FontWeight.w600,
               ),
             ),
+            if (!_isEditStep) ...[
+              const SizedBox(height: 8),
+              Text(
+                "You can still edit your description in the next step if it isn't written yet.",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppConfig().colors.txtColor,
+                ),
+              ),
+            ],
             const SizedBox(height: 14),
             Expanded(
               child: _isEditStep

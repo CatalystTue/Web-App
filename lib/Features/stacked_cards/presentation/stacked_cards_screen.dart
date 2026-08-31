@@ -462,7 +462,8 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
           child: _cards.isEmpty
               ? Center(
                   child: Text(
-                    'No more users in queue.',
+                    'No more users in queue. Check again later.',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 18,
                       color: AppConfig().colors.txtBodyColor,

@@ -16,8 +16,9 @@ class SplashController extends GetxController {
       return;
     }
 
+    final onboardingDone = await AppRepo().refreshOnboardingStatus();
     Get.offAllNamed(
-      AppRepo().isOnboardingDone
+      onboardingDone
           ? AppConfig().routes.base
           : AppConfig().routes.initform,
     );

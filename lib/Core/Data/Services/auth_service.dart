@@ -315,6 +315,19 @@ class AuthenticationService extends ServicesHelper {
     return null;
   }
 
+  Future<Map<String, dynamic>?> getProfile() async {
+    final response = await request(
+      '$baseURL/profile/me',
+      serviceType: ServiceType.get,
+      requiredDefaultHeader: true,
+    );
+
+    if (response is! Map<String, dynamic> || response.containsKey('detail')) {
+      return null;
+    }
+    return response;
+  }
+
   Future<Map<String, dynamic>?> updateProfile({
     String? name,
     String? affiliation,
@@ -322,6 +335,7 @@ class AuthenticationService extends ServicesHelper {
     String? position,
     String? description,
     String? location,
+    bool? onboardingComplete,
   }) async {
     final Map<String, dynamic> data = {};
     // Send provided fields even when empty so later profile save can clear them.
@@ -340,6 +354,9 @@ class AuthenticationService extends ServicesHelper {
     }
     if (location != null) {
       data['location'] = location;
+    }
+    if (onboardingComplete != null) {
+      data['onboarding_complete'] = onboardingComplete;
     }
 
     if (data.isEmpty) return null;

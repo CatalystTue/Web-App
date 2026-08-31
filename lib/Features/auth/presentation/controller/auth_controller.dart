@@ -49,8 +49,9 @@ class AuthController extends GetxController {
 
     if (_hasAccessToken(response)) {
       await AppRepo().loginUser(response!);
+      final onboardingDone = await AppRepo().refreshOnboardingStatus();
       Get.offAllNamed(
-        AppRepo().isOnboardingDone
+        onboardingDone
             ? AppConfig().routes.base
             : AppConfig().routes.initform,
       );

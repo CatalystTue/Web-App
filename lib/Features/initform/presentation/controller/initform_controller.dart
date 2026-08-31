@@ -61,7 +61,7 @@ class InitFormController extends GetxController {
     selectedKeywords.remove(value);
   }
 
-  Future<bool> _saveFilledProfileFields() async {
+  Future<bool> _saveFilledProfileFields({bool complete = false}) async {
     final name = nameCtrl.text.trim();
     final affiliation = affliationCtrl.text.trim();
     final position = positionCtrl.text.trim();
@@ -72,7 +72,8 @@ class InitFormController extends GetxController {
         affiliation.isEmpty &&
         position.isEmpty &&
         location.isEmpty &&
-        description.isEmpty) {
+        description.isEmpty &&
+        !complete) {
       return true;
     }
 
@@ -82,6 +83,7 @@ class InitFormController extends GetxController {
       position: position.isEmpty ? null : position,
       location: location.isEmpty ? null : location,
       description: description.isEmpty ? null : description,
+      onboardingComplete: complete ? true : null,
     );
 
     if (result == null) {
@@ -91,6 +93,9 @@ class InitFormController extends GetxController {
         position: SnackPosition.TOP,
       );
       return false;
+    }
+    if (complete) {
+      AppRepo().onboardingComplete = true;
     }
     return true;
   }
@@ -123,14 +128,15 @@ class InitFormController extends GetxController {
 
     submitting.value = true;
 
-    final saved = await _saveFilledProfileFields();
+    final finishingWithoutLlm = selectedKeywords.isEmpty;
+    final saved =
+        await _saveFilledProfileFields(complete: finishingWithoutLlm);
     if (!saved) {
       submitting.value = false;
       return;
     }
 
-    if (selectedKeywords.isEmpty) {
-      await AppRepo().markOnboardingDone();
+    if (finishingWithoutLlm) {
       submitting.value = false;
       Get.offAllNamed(AppConfig().routes.base);
       return;

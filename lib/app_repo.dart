@@ -6,6 +6,7 @@ import 'package:catalyst_flutter_app/Core/Constants/config.dart';
 import 'package:catalyst_flutter_app/Core/Data/Local_Cache/local_cache_helper.dart';
 import 'package:catalyst_flutter_app/Core/Data/Models/card_model.dart';
 import 'package:catalyst_flutter_app/Core/Data/Models/user_model.dart';
+import 'package:catalyst_flutter_app/Core/Data/Services/auth_service.dart';
 import 'package:catalyst_flutter_app/Core/Data/Services/card_service.dart';
 import 'package:catalyst_flutter_app/Core/Utils/enum.dart';
 import 'package:catalyst_flutter_app/Core/Utils/extentions.dart';
@@ -35,6 +36,7 @@ class AppRepo {
   String? jwtToken;
   User? user;
   bool _redirectingToAuth = false;
+  bool onboardingComplete = false;
 
   bool get hasAccessToken {
     final token = jwtToken?.trim();
@@ -58,11 +60,10 @@ class AppRepo {
     }
   }
 
-  bool get isOnboardingDone =>
-      localCache.read(AppConfig().localCacheKeys.onboardingDone) == true;
-
-  Future<void> markOnboardingDone() async {
-    await localCache.write(AppConfig().localCacheKeys.onboardingDone, true);
+  Future<bool> refreshOnboardingStatus() async {
+    final profile = await AuthenticationService().getProfile();
+    onboardingComplete = profile?['onboarding_complete'] == true;
+    return onboardingComplete;
   }
 
   Future<void> initLocalCache() async {
@@ -88,6 +89,7 @@ class AppRepo {
   Future<void> clearSession() async {
     jwtToken = null;
     user = null;
+    onboardingComplete = false;
     await localCache.remove(AppConfig().localCacheKeys.accessToken);
     await localCache.write(
       AppConfig().localCacheKeys.userLoggedInStatus,
@@ -180,12 +182,7 @@ class AppRepo {
   }
 
   Future<void> logoutUser() async {
-    final onboardingDone = isOnboardingDone;
     await clearSession();
-    if (onboardingDone) {
-      await markOnboardingDone();
-    }
-
     Get.offAllNamed(AppConfig().routes.splash);
   }
 }

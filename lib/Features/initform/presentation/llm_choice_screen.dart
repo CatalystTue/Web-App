@@ -40,6 +40,7 @@ class _LlmChoiceScreenState extends State<LlmChoiceScreen> {
     setState(() => _submitting = true);
     final result = await AuthenticationService().updateProfile(
       description: description,
+      onboardingComplete: true,
     );
     if (!mounted) return;
     setState(() => _submitting = false);
@@ -53,7 +54,7 @@ class _LlmChoiceScreenState extends State<LlmChoiceScreen> {
       return;
     }
 
-    await AppRepo().markOnboardingDone();
+    AppRepo().onboardingComplete = true;
     Get.offAllNamed(AppConfig().routes.base);
   }
 

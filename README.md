@@ -1,6 +1,8 @@
 # catalyst_flutter_app
 
-A new Flutter project.
+Flutter web frontend for Catalyst. Members sign in, complete a profile card, and browse a stack of other users. Admins have a separate console.
+
+Current behavior is specified in [`openspec/specs/`](openspec/specs/). `[PRE]` on a requirement means it was reverse-engineered from this codebase, not new work.
 
 ## Getting Started
 
@@ -38,3 +40,15 @@ Named routes in `lib/Core/Constants/route.dart`. On web they are hash URLs (`/#/
 | `/stacked-cards` | Stacked cards |
 | `/admin` | Admin login |
 | `/admin-welcome` | Admin area |
+
+## Specs
+
+| Capability | Covers |
+| --- | --- |
+| [platform-and-session](openspec/specs/platform-and-session/spec.md) | App shell, API client, tokens, routing, auth gates |
+| [user-authentication](openspec/specs/user-authentication/spec.md) | Splash, register, login, email verification |
+| [account-recovery](openspec/specs/account-recovery/spec.md) | Recover account and reset password |
+| [onboarding](openspec/specs/onboarding/spec.md) | Profile init form and LLM description choice |
+| [matching-stack](openspec/specs/matching-stack/spec.md) | Home card stack, likes, undo |
+| [profile-and-settings](openspec/specs/profile-and-settings/spec.md) | My Card, settings, logout, delete account, legal docs |
+| [admin-console](openspec/specs/admin-console/spec.md) | Admin login, mailing templates, restrictions, SQL viewer |

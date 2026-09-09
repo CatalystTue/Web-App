@@ -22,11 +22,7 @@ schema: spec-driven
 # Per-operation guidance (optional)
 # Add advisory guidance for how apply and archive work should be conducted.
 # This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+operations:
+  archive:
+    guidance:
+      - After archiving, update README.md if needed: Pages for route changes, Getting Started for setup or API-default changes, and the Specs table for added, removed, or renamed capabilities. Leave the README unchanged when none of those apply.

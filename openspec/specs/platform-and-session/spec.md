@@ -147,7 +147,7 @@ The system SHALL distinguish admin JWTs from member JWTs so admins cannot use me
 The system SHALL bounce members without a token away from protected pages so private data is not shown.
 
 #### Scenario: Member routes require token
-- **WHEN** a user opens `/base`, `/idea-card`, `/settings`, `/initform`, or `/llm-choice` without an access token
+- **WHEN** a user opens `/base`, `/idea-card`, `/settings`, `/initform`, `/llm-choice`, or `/liked-users` without an access token
 - **THEN** the system SHALL redirect to `/auth`
 
 #### Scenario: Admin blocked from member routes
@@ -155,7 +155,7 @@ The system SHALL bounce members without a token away from protected pages so pri
 - **THEN** the system SHALL redirect to `/admin-welcome`
 
 #### Scenario: Public routes skip auth middleware
-- **WHEN** a user opens `/`, `/auth`, `/register`, `/verify`, `/recover-account`, `/reset-password`, `/admin`, `/admin-welcome`, or `/stacked-cards`
+- **WHEN** a user opens `/`, `/auth`, `/register`, `/verify`, `/recover-account`, `/reset-password`, `/admin`, `/admin-welcome`, `/stacked-cards`, or `/digest`
 - **THEN** AuthMiddleware SHALL not apply
 
 #### Scenario: Logged-in users stay on public auth screens
@@ -180,7 +180,7 @@ The system SHALL expose stable URLs for each screen so email links and bookmarks
 
 #### Scenario: Route map
 - **WHEN** the app maps screens
-- **THEN** the following named routes SHALL exist: `/` splash; `/register` register; `/auth` login; `/recover-account` recover account; `/verify` email verification; `/reset-password` reset password; `/initform` onboarding form; `/llm-choice` LLM description choice; `/base` member home shell; `/idea-card` My Card; `/settings` settings; `/stacked-cards` stacked cards (standalone, constructed with an empty user list); `/admin` admin login; `/admin-welcome` admin console
+- **THEN** the following named routes SHALL exist: `/` splash; `/register` register; `/auth` login; `/recover-account` recover account; `/verify` email verification; `/reset-password` reset password; `/initform` onboarding form; `/llm-choice` LLM description choice; `/base` member home shell; `/idea-card` My Card; `/settings` settings; `/stacked-cards` stacked cards (standalone, constructed with an empty user list); `/liked-users` liked users; `/digest` digest mail landing; `/admin` admin login; `/admin-welcome` admin console
 
 ### [PRE] Requirement: Unused product surface
 

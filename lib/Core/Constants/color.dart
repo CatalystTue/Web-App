@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   final Color primaryColor = const Color(0xFF4F5D75);
+  final Color sparkYellow = const Color(0xFFF59E0B);
   final Color secondaryColor = const Color.fromARGB(255, 0, 0, 0);
   final Color darkYellow = const Color(0xFF4F5D75);
   final Color backGroundColor = const Color(0xFFF7F8FB);

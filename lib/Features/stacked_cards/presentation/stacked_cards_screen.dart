@@ -1,6 +1,10 @@
+import 'package:catalyst_flutter_app/Core/Components/buttons_widgets.dart';
 import 'package:catalyst_flutter_app/Core/Constants/config.dart';
 import 'package:catalyst_flutter_app/Core/Data/Models/stack_user_model.dart';
 import 'package:catalyst_flutter_app/Core/Data/Services/card_service.dart';
+import 'package:catalyst_flutter_app/Core/Utils/enum.dart';
+import 'package:catalyst_flutter_app/Features/stacked_cards/presentation/stack_card_face.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
@@ -11,44 +15,19 @@ class _StackCard {
   final int id;
   int initStackPos;
   final Color color;
-  final String name;
-  final String description;
-  final String affiliation;
-  final String position;
-  final String location;
   final StackUserModel user;
 
   _StackCard({
     required this.id,
     required this.initStackPos,
     required this.color,
-    required this.name,
-    required this.description,
-    required this.affiliation,
-    required this.position,
-    required this.location,
     required this.user,
   });
-
-  _StackCard copyWith({int? initStackPos}) {
-    return _StackCard(
-      id: id,
-      initStackPos: initStackPos ?? this.initStackPos,
-      color: color,
-      name: name,
-      description: description,
-      affiliation: affiliation,
-      position: position,
-      location: location,
-      user: user,
-    );
-  }
 }
 
 class _StackSnapshot {
   final List<_StackCard> cards;
   final List<StackUserModel> userPool;
-  final int frontIndex;
   final int nextCardId;
   final Set<int> markedCardIds;
   final Set<int> dismissedUserIds;
@@ -58,7 +37,6 @@ class _StackSnapshot {
   const _StackSnapshot({
     required this.cards,
     required this.userPool,
-    required this.frontIndex,
     required this.nextCardId,
     required this.markedCardIds,
     required this.dismissedUserIds,
@@ -71,12 +49,14 @@ class StackedCardsScreen extends StatefulWidget {
   final List<StackUserModel> users;
   final ValueChanged<StackUserModel>? onCardHearted;
   final ValueChanged<StackUserModel>? onCardUnhearted;
+  final VoidCallback? onUserActed;
 
   const StackedCardsScreen({
     super.key,
     required this.users,
     this.onCardHearted,
     this.onCardUnhearted,
+    this.onUserActed,
   });
 
   @override
@@ -84,28 +64,11 @@ class StackedCardsScreen extends StatefulWidget {
 }
 
 class StackedCardsScreenState extends State<StackedCardsScreen> {
-  static const int _visibleCardCount = 5;
   static const Duration _animationDuration = Duration(milliseconds: 500);
-  static const double _cardWidth = 260;
-  static const double _cardHeight = 400;
-  static const double _cardGap = -150;
-  static const double _behindScale = 0.4;
-  static const double _horizontalStep = _cardWidth + _cardGap;
-  static const double _maxStackWidth =
-      _cardWidth + (_visibleCardCount - 1) * _horizontalStep;
-  static const double _stackHeight = 440;
-
-  static const List<Color> _cardColors = [
-    Color(0xFF4F5D75),
-    Color(0xFFA4D294),
-    Color(0xFFFF9B9B),
-    Color(0xFF605D64),
-    Color(0xFFFA7E7E),
-  ];
+  static const int _visibleCardCount = 1;
 
   late List<_StackCard> _cards;
   late List<StackUserModel> _userPool;
-  int _frontIndex = 0;
   int _nextCardId = 0;
   int? _dismissingCardId;
   _DismissDirection? _dismissDirection;
@@ -113,14 +76,12 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
   final List<_StackSnapshot> _undoHistory = [];
   final Set<int> _markedCardIds = {};
   final Set<int> _dismissedUserIds = {};
-  final Map<int, GlobalKey> _cardKeys = {};
   final FocusNode _keyboardFocusNode = FocusNode();
 
   bool get canUndo => _undoHistory.isNotEmpty && !_isDismissing;
 
-  double get _stackWidth {
-    if (_cards.isEmpty) return 0;
-    return _cardWidth + (_cards.length - 1) * _horizontalStep;
+  String _displayName(_StackCard card) {
+    return card.user.name.isNotEmpty ? card.user.name : 'Card ${card.id + 1}';
   }
 
   Future<void> undoLastDismiss() async {
@@ -142,7 +103,6 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     setState(() {
       _cards = List<_StackCard>.from(snapshot.cards);
       _userPool = List<StackUserModel>.from(snapshot.userPool);
-      _frontIndex = snapshot.frontIndex;
       _nextCardId = snapshot.nextCardId;
       _markedCardIds
         ..clear()
@@ -152,31 +112,45 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
         ..addAll(snapshot.dismissedUserIds);
       _isDismissing = false;
     });
-    _scrollActiveCardIntoView();
   }
 
-  void _heartCard(int cardId) {
+  void _showInterest(_StackCard card) {
     if (_isDismissing || _cards.isEmpty) return;
-
-    final cardIndex = _cards.indexWhere((card) => card.id == cardId);
-    if (cardIndex < 0 || _stackPosition(_cards[cardIndex]) != 0) return;
-
-    _markedCardIds.add(cardId);
-    _dismissCard(_DismissDirection.right, _cards[cardIndex]);
+    _markedCardIds.add(card.id);
+    _dismissCard(_DismissDirection.right, card, SwipeOutcome.interest);
   }
 
   @override
   void initState() {
     super.initState();
-    _userPool = List<StackUserModel>.from(widget.users);
-    _cards = _buildInitialCards();
-    _frontIndex = _cards.isEmpty ? 0 : _indexOfCenterCard();
+    _resetFromUsers(widget.users);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _keyboardFocusNode.requestFocus();
-        _scrollActiveCardIntoView();
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant StackedCardsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldIds = oldWidget.users.map((user) => user.id).toList();
+    final newIds = widget.users.map((user) => user.id).toList();
+    if (!listEquals(oldIds, newIds) && !_isDismissing) {
+      _resetFromUsers(widget.users);
+    }
+  }
+
+  void _resetFromUsers(List<StackUserModel> users) {
+    _userPool = List<StackUserModel>.from(users);
+    _nextCardId = 0;
+    _cards = _buildInitialCards();
+    _markedCardIds.clear();
+    _dismissedUserIds.clear();
+    _undoHistory.clear();
+    _dismissingCardId = null;
+    _dismissDirection = null;
+    _isDismissing = false;
   }
 
   @override
@@ -210,12 +184,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     return _StackCard(
       id: id,
       initStackPos: initStackPos,
-      color: _cardColors[id % _cardColors.length],
-      name: user.name.isNotEmpty ? user.name : 'Card ${id + 1}',
-      description: user.description,
-      affiliation: user.affiliation,
-      position: user.position,
-      location: user.location,
+      color: kStackCardColors[id % kStackCardColors.length],
       user: user,
     );
   }
@@ -225,58 +194,18 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     return _userPool.removeAt(0);
   }
 
-  void _bringNextCardForward() {
+  Future<void> _dismissFrontCard(
+    _DismissDirection direction,
+    SwipeOutcome outcome,
+  ) async {
     if (_isDismissing || _cards.isEmpty) return;
-    if (_frontIndex < 0 || _frontIndex >= _cards.length) {
-      _frontIndex = 0;
-    }
-    final nextInitPosition =
-        (_cards[_frontIndex].initStackPos + 1) % _cards.length;
-    setState(() {
-      _frontIndex = _initPositionToIndex(nextInitPosition);
-      if (_frontIndex < 0) _frontIndex = 0;
-    });
-    _scrollActiveCardIntoView();
-  }
-
-  void _bringPreviousCardForward() {
-    if (_isDismissing || _cards.isEmpty) return;
-    if (_frontIndex < 0 || _frontIndex >= _cards.length) {
-      _frontIndex = 0;
-    }
-    final previousInitPosition =
-        (_cards[_frontIndex].initStackPos - 1 + _cards.length) % _cards.length;
-    setState(() {
-      _frontIndex = _initPositionToIndex(previousInitPosition);
-      if (_frontIndex < 0) _frontIndex = 0;
-    });
-    _scrollActiveCardIntoView();
-  }
-
-  void _scrollActiveCardIntoView() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _cards.isEmpty) return;
-      final activeCard = _cards[_frontIndex];
-      final cardContext = _cardKeys[activeCard.id]?.currentContext;
-      if (cardContext == null) return;
-
-      Scrollable.ensureVisible(
-        cardContext,
-        duration: _animationDuration,
-        curve: Curves.easeInOutCubic,
-        alignment: 0.5,
-      );
-    });
-  }
-
-  Future<void> _dismissFrontCard(_DismissDirection direction) async {
-    if (_isDismissing || _cards.isEmpty) return;
-    await _dismissCard(direction, _cards[_frontIndex]);
+    await _dismissCard(direction, _cards.first, outcome);
   }
 
   Future<void> _dismissCard(
     _DismissDirection direction,
     _StackCard card,
+    SwipeOutcome outcome,
   ) async {
     if (_isDismissing || _cards.isEmpty) return;
 
@@ -297,7 +226,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
 
     final swipeOk = dismissedUserId > 0
         ? await CardsService().swipeCard(
-            interested: direction == _DismissDirection.right,
+            outcome: outcome,
             targetUserId: dismissedUserId,
           )
         : true;
@@ -312,6 +241,8 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
       });
       return;
     }
+
+    widget.onUserActed?.call();
 
     final replacementFuture = CardsService().getReplacementUser(
       remainingUserIds: remainingUserIds,
@@ -328,35 +259,24 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
 
     if (!mounted) return;
 
-    final wasHearted = direction == _DismissDirection.right &&
+    final wasInterested = outcome == SwipeOutcome.interest &&
         _markedCardIds.contains(card.id);
     setState(() {
       _undoHistory.add(_StackSnapshot(
         cards: List<_StackCard>.from(_cards),
         userPool: List<StackUserModel>.from(_userPool),
-        frontIndex: _frontIndex,
         nextCardId: _nextCardId,
         markedCardIds: Set<int>.from(_markedCardIds)..remove(card.id),
         dismissedUserIds: snapshotDismissedUserIds,
         dismissedUserId: dismissedUserId,
-        savedIdea: wasHearted ? card.user : null,
+        savedIdea: wasInterested ? card.user : null,
       ));
       _applyDismiss(card, replacementUser);
       _dismissingCardId = null;
       _dismissDirection = null;
       _isDismissing = false;
     });
-    _scrollActiveCardIntoView();
-    if (wasHearted) widget.onCardHearted?.call(card.user);
-  }
-
-  int _initPositionToIndex(int index) {
-    for (int i = 0; i < _cards.length; i++) {
-      if (_cards[i].initStackPos == index) {
-        return i;
-      }
-    }
-    return -1;
+    if (wasInterested) widget.onCardHearted?.call(card.user);
   }
 
   void _applyDismiss(
@@ -364,76 +284,16 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     StackUserModel? replacement,
   ) {
     _markedCardIds.remove(dismissed.id);
-    _cardKeys.remove(dismissed.id);
-    final dismissedPos = dismissed.initStackPos;
     _cards = _cards.where((card) => card.id != dismissed.id).toList();
 
     final nextUser = replacement ?? _nextUserFromPool();
     if (nextUser != null) {
       final replacementCard = _stackCardFromUser(
         user: nextUser,
-        initStackPos: dismissedPos,
+        initStackPos: 0,
       );
       _cards.add(replacementCard);
-      _frontIndex = _cards.indexWhere((card) => card.id == replacementCard.id);
-      return;
     }
-
-    _cards = [
-      for (final card in _cards)
-        card.initStackPos > dismissedPos
-            ? card.copyWith(initStackPos: card.initStackPos - 1)
-            : card,
-    ];
-
-    if (_cards.isEmpty) {
-      _frontIndex = 0;
-      return;
-    }
-
-    final shiftedIntoHole =
-        _cards.indexWhere((card) => card.initStackPos == dismissedPos);
-    if (shiftedIntoHole >= 0) {
-      _frontIndex = shiftedIntoHole;
-      return;
-    }
-
-    final leftNeighbor =
-        _cards.indexWhere((card) => card.initStackPos == dismissedPos - 1);
-    _frontIndex = leftNeighbor >= 0 ? leftNeighbor : 0;
-  }
-
-  int _indexOfCenterCard() {
-    if (_cards.isEmpty) return 0;
-    final centerPos = (_cards.length - 1) ~/ 2;
-    final centerIndex =
-        _cards.indexWhere((card) => card.initStackPos == centerPos);
-    if (centerIndex >= 0) return centerIndex;
-
-    var closestIndex = 0;
-    var closestDistance = 999;
-    for (var i = 0; i < _cards.length; i++) {
-      final distance = (_cards[i].initStackPos - centerPos).abs();
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestIndex = i;
-      }
-    }
-    return closestIndex;
-  }
-
-  int _stackPosition(_StackCard card) {
-    if (_cards.isEmpty || _frontIndex < 0 || _frontIndex >= _cards.length) {
-      return 0;
-    }
-    final frontInitPos = _cards[_frontIndex].initStackPos;
-    final count = _cards.length;
-    return (card.initStackPos - frontInitPos + count) % count;
-  }
-
-  List<_StackCard> get _sortedCards {
-    return List<_StackCard>.from(_cards)
-      ..sort((a, b) => _stackPosition(b).compareTo(_stackPosition(a)));
   }
 
   @override
@@ -448,14 +308,13 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
             return;
           }
 
-          if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-            _bringPreviousCardForward();
-          } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-            _bringNextCardForward();
-          } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-            _dismissFrontCard(_DismissDirection.up);
+          if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            _dismissFrontCard(_DismissDirection.up, SwipeOutcome.know);
           } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-            _dismissFrontCard(_DismissDirection.down);
+            _dismissFrontCard(
+              _DismissDirection.down,
+              SwipeOutcome.noInterest,
+            );
           }
         },
         child: SafeArea(
@@ -475,77 +334,46 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
                   child: Column(
                     children: [
                       Expanded(
-                        child: LayoutBuilder(
-                          builder: (context, constraints) => Center(
-                            child: SizedBox(
-                              width: constraints.constrainWidth(_maxStackWidth),
-                              height: _stackHeight,
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                clipBehavior: Clip.none,
-                                child: SizedBox(
-                                  width: _maxStackWidth,
-                                  height: _stackHeight,
-                                  child: Stack(
-                                    alignment: Alignment.center,
-                                    clipBehavior: Clip.none,
-                                    children: _sortedCards
-                                        .map(_buildStackedCard)
-                                        .toList(),
-                                  ),
-                                ),
-                              ),
+                        child: Center(
+                          child: SizedBox(
+                            width: kStackCardWidth,
+                            height: kStackHeight,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              clipBehavior: Clip.none,
+                              children: _cards.map(_buildCard).toList(),
                             ),
                           ),
                         ),
                       ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      Column(
                         children: [
-                          IconButton(
-                            onPressed: _isDismissing
-                                ? null
-                                : _bringPreviousCardForward,
-                            icon: const Icon(Icons.arrow_back_ios_new),
-                            color: AppConfig().colors.primaryColor,
-                            iconSize: 32,
-                            tooltip: 'Previous card',
+                          SizedBox(
+                            width: 280,
+                            child: CustomIconButton(
+                              title: 'I know this person',
+                              onTap: _isDismissing
+                                  ? null
+                                  : () => _dismissFrontCard(
+                                        _DismissDirection.up,
+                                        SwipeOutcome.know,
+                                      ),
+                              txtColor: Colors.white,
+                              color: AppConfig().colors.primaryColor,
+                            ),
                           ),
-                          Gap(AppConfig().dimens.medium),
-                          Column(
-                            children: [
-                              IconButton(
-                                onPressed: _isDismissing
-                                    ? null
-                                    : () => _dismissFrontCard(
-                                          _DismissDirection.up,
-                                        ),
-                                icon: const Icon(Icons.keyboard_arrow_up),
-                                color: AppConfig().colors.primaryColor,
-                                iconSize: 32,
-                                tooltip: 'I know this person',
-                              ),
-                              IconButton(
-                                onPressed: _isDismissing
-                                    ? null
-                                    : () => _dismissFrontCard(
-                                          _DismissDirection.down,
-                                        ),
-                                icon: const Icon(Icons.keyboard_arrow_down),
-                                color: AppConfig().colors.primaryColor,
-                                iconSize: 32,
-                                tooltip: 'Not interested',
-                              ),
-                            ],
-                          ),
-                          Gap(AppConfig().dimens.medium),
-                          IconButton(
-                            onPressed:
-                                _isDismissing ? null : _bringNextCardForward,
-                            icon: const Icon(Icons.arrow_forward_ios),
-                            color: AppConfig().colors.primaryColor,
-                            iconSize: 32,
-                            tooltip: 'Next card',
+                          Gap(AppConfig().dimens.small),
+                          SizedBox(
+                            width: 280,
+                            child: CustomOutlineIconButton(
+                              title: "I'm not interested",
+                              onTap: _isDismissing
+                                  ? null
+                                  : () => _dismissFrontCard(
+                                        _DismissDirection.down,
+                                        SwipeOutcome.noInterest,
+                                      ),
+                            ),
                           ),
                         ],
                       ),
@@ -557,190 +385,49 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     );
   }
 
-  Widget _buildStackedCard(_StackCard card) {
-    final stackPos = _stackPosition(card);
-    final isFront = stackPos == 0;
+  Widget _buildCard(_StackCard card) {
     final isDismissing = card.id == _dismissingCardId;
-    final originLeft = (_maxStackWidth - _stackWidth) / 2;
-    final baseLeft = originLeft + card.initStackPos * _horizontalStep;
-    const baseTop = (_stackHeight - _cardHeight) / 2;
+    const baseLeft = 0.0;
+    const baseTop = (kStackHeight - kStackCardHeight) / 2;
 
     final horizontalDismiss =
         isDismissing && _dismissDirection == _DismissDirection.right
-            ? _cardWidth * 1.4
+            ? kStackCardWidth * 1.4
             : 0.0;
 
     final verticalDismiss = isDismissing
         ? switch (_dismissDirection) {
-            _DismissDirection.up => -_cardHeight * 1.4,
-            _DismissDirection.down => _cardHeight * 1.4,
+            _DismissDirection.up => -kStackCardHeight * 1.4,
+            _DismissDirection.down => kStackCardHeight * 1.4,
             _ => 0.0,
           }
         : 0.0;
 
-    final opacity = isDismissing ? 0.0 : (isFront ? 1.0 : 0.9);
+    final opacity = isDismissing ? 0.0 : 1.0;
+    final isMarked = _markedCardIds.contains(card.id);
 
     return AnimatedPositioned(
       key: ValueKey('card-${card.id}'),
       left: baseLeft + horizontalDismiss,
       top: baseTop + verticalDismiss,
-      width: _cardWidth,
-      height: _cardHeight,
+      width: kStackCardWidth,
+      height: kStackCardHeight,
       duration: _animationDuration,
       curve: Curves.easeInOutCubic,
-      child: KeyedSubtree(
-        key: _cardKeys.putIfAbsent(card.id, () => GlobalKey()),
-        child: AnimatedOpacity(
-          opacity: opacity,
-          duration: _animationDuration,
-          curve: Curves.easeInOutCubic,
-          child: IgnorePointer(
-            ignoring: !isFront || _isDismissing,
-            child: AnimatedScale(
-              scale: isFront ? 1.0 : _behindScale,
-              duration: _animationDuration,
-              curve: Curves.easeInOutCubic,
-              alignment: Alignment.center,
-              child: _buildCardFace(card, isInteractive: isFront),
-            ),
+      child: AnimatedOpacity(
+        opacity: opacity,
+        duration: _animationDuration,
+        curve: Curves.easeInOutCubic,
+        child: IgnorePointer(
+          ignoring: _isDismissing,
+          child: StackCardFace(
+            user: card.user,
+            accentColor: card.color,
+            displayName: _displayName(card),
+            interestOn: isMarked,
+            canToggleInterest: !_isDismissing,
+            onInterestPressed: () => _showInterest(card),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCardFace(_StackCard card, {required bool isInteractive}) {
-    return Card(
-      elevation: 10.0,
-      shadowColor: Colors.black.withValues(alpha: 0.2),
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: card.color.withValues(alpha: 0.55),
-          width: 2,
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: EdgeInsets.all(AppConfig().dimens.medium),
-        child: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: card.color,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                Gap(AppConfig().dimens.medium),
-                Text(
-                  card.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppConfig().colors.txtHeaderColor,
-                  ),
-                ),
-                Gap(AppConfig().dimens.small),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        card.affiliation.isNotEmpty
-                            ? card.affiliation
-                            : 'No affiliation',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: AppConfig().colors.txtBodyColor,
-                        ),
-                      ),
-                      Gap(AppConfig().dimens.small),
-                      Text(
-                        card.position.isNotEmpty
-                            ? card.position
-                            : 'No position',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: AppConfig().colors.txtBodyColor,
-                        ),
-                      ),
-                      if (card.location.isNotEmpty) ...[
-                        Gap(AppConfig().dimens.small),
-                        Text(
-                          card.location,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: AppConfig().colors.txtBodyColor,
-                          ),
-                        ),
-                      ],
-                      Gap(AppConfig().dimens.small),
-                      Expanded(
-                        child: Scrollbar(
-                          child: SingleChildScrollView(
-                            child: Text(
-                              card.description.isNotEmpty
-                                  ? card.description
-                                  : 'No description',
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: AppConfig().colors.txtBodyColor,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: _buildHeartButton(
-                card.id,
-                canHeart: isInteractive && !_isDismissing,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeartButton(int cardId, {required bool canHeart}) {
-    final isMarked = _markedCardIds.contains(cardId);
-    final red = AppConfig().colors.redColor;
-
-    return IconButton(
-      onPressed: canHeart ? () => _heartCard(cardId) : null,
-      tooltip: canHeart ? 'Heart card' : null,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints.tightFor(width: 40, height: 40),
-      icon: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 200),
-        child: Icon(
-          isMarked ? Icons.favorite : Icons.favorite_border,
-          key: ValueKey(isMarked),
-          color: red,
-          size: 32,
         ),
       ),
     );

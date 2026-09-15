@@ -7,17 +7,17 @@ import 'package:catalyst_flutter_app/Core/Utils/enum.dart';
 import 'package:flutter/material.dart';
 
 class CardsService extends ServicesHelper {
-  static const int _defaultStackSize = 5;
+  static const int discoveryStackSize = 1;
 
   String get apiURL => '$baseURL/swipes';
 
   Future<List<GetCardModel>> getStack({int? limit}) async {
-    return _fetchNextStack(limit: limit ?? _defaultStackSize);
+    return _fetchNextStack(limit: limit ?? discoveryStackSize);
   }
 
   Future<List<StackUserModel>> getMeStackUsers() async {
     debugPrint('Requesting home preview cards.');
-    return _fetchNextStack(limit: _defaultStackSize);
+    return _fetchNextStack(limit: discoveryStackSize);
   }
 
   Future<List<GetCardModel>> getOwnCards() async {
@@ -33,12 +33,12 @@ class CardsService extends ServicesHelper {
   }
 
   Future<bool> swipeCard({
-    required bool interested,
+    required SwipeOutcome outcome,
     required int targetUserId,
   }) async {
     final url = '$baseURL/swipes/$targetUserId';
     final body = {
-      'interested': interested,
+      'outcome': outcome.apiValue,
     };
 
     log('Sending swipe request to $url with body $body');
@@ -54,12 +54,15 @@ class CardsService extends ServicesHelper {
     return true;
   }
 
-  Future<void> deleteSwipe({required int targetUserId}) async {
-    await request(
+  Future<bool> deleteSwipe({required int targetUserId}) async {
+    final response = await request(
       '$baseURL/swipes/$targetUserId',
       serviceType: ServiceType.delete,
       requiredDefaultHeader: true,
     );
+    if (response == null) return false;
+    if (response is Map && response.containsKey('detail')) return false;
+    return true;
   }
 
   Future<List<StackUserModel>> getSavedIdeas() async {

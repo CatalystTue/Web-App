@@ -1,6 +1,7 @@
 import 'dart:developer';
 import 'package:appinio_swiper/appinio_swiper.dart';
 import 'package:catalyst_flutter_app/app_repo.dart';
+import 'package:catalyst_flutter_app/Core/Utils/enum.dart';
 import 'package:catalyst_flutter_app/Features/swipe_cards/domain/swipe_cards_repo.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
@@ -47,7 +48,9 @@ class SwipeCardsController extends GetxController {
       log('previous index: $previousIndex, target index: $targetIndex');
 
       swipeCard(
-        interested: activity.direction == AxisDirection.right,
+        outcome: activity.direction == AxisDirection.right
+            ? SwipeOutcome.interest
+            : SwipeOutcome.noInterest,
         targetUserId: AppRepo().cards[previousIndex].id,
       );
     } else if (activity is Unswipe) {
@@ -80,11 +83,11 @@ class SwipeCardsController extends GetxController {
   }
 
   Future<void> swipeCard({
-    required bool interested,
+    required SwipeOutcome outcome,
     required int targetUserId,
   }) async {
     await repo.swipeCard(
-      interested: interested,
+      outcome: outcome,
       targetUserId: targetUserId,
     );
   }

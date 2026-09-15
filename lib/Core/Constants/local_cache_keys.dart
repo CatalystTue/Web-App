@@ -5,4 +5,5 @@ class LocalCacheKeys {
   final profileAffliation = 'profile_affliation';
   final profileCareerStage = 'profile_career_stage';
   final profileDescription = 'profile_description';
+  final feedIntroSeen = 'feedIntroSeen';
 }

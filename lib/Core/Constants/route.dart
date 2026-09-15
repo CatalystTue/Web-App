@@ -13,6 +13,8 @@ import 'package:catalyst_flutter_app/Features/app_settings/presentation/binding/
 import 'package:catalyst_flutter_app/Features/idea_card/presentation/binding/idea_card_binding.dart';
 import 'package:catalyst_flutter_app/Features/idea_card/presentation/idea_card_screen.dart';
 import 'package:catalyst_flutter_app/Features/stacked_cards/presentation/stacked_cards_screen.dart';
+import 'package:catalyst_flutter_app/Features/liked_users/presentation/liked_users_screen.dart';
+import 'package:catalyst_flutter_app/Features/digest/presentation/digest_screen.dart';
 
 import 'package:catalyst_flutter_app/Features/register/presentation/binding/register_binding.dart';
 import 'package:catalyst_flutter_app/Features/register/presentation/register_screen.dart';
@@ -41,6 +43,8 @@ class AppRoutes {
   final initform = '/initform';
   final llmChoice = '/llm-choice';
   final stackedCards = '/stacked-cards';
+  final likedUsers = '/liked-users';
+  final digest = '/digest';
 
   List<GetPage> get pages {
     return [
@@ -51,7 +55,7 @@ class AppRoutes {
       GetPage(
         name: base,
         binding: BaseBinding(),
-        page: () => AppBaseView(),
+        page: () => const AppBaseView(),
         middlewares: [AuthMiddleware()],
       ),
       GetPage(
@@ -112,6 +116,15 @@ class AppRoutes {
       GetPage(
         name: stackedCards,
         page: () => const StackedCardsScreen(users: []),
+      ),
+      GetPage(
+        name: likedUsers,
+        page: () => const LikedUsersScreen(),
+        middlewares: [AuthMiddleware()],
+      ),
+      GetPage(
+        name: digest,
+        page: () => const DigestScreen(),
       ),
     ];
   }

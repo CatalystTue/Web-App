@@ -38,6 +38,8 @@ Named routes in `lib/Core/Constants/route.dart`. On web they are hash URLs (`/#/
 | `/idea-card` | My Card |
 | `/settings` | Settings |
 | `/stacked-cards` | Stacked cards |
+| `/liked-users` | Liked users |
+| `/digest` | Digest mail landing |
 | `/admin` | Admin login |
 | `/admin-welcome` | Admin area |
 
@@ -49,6 +51,7 @@ Named routes in `lib/Core/Constants/route.dart`. On web they are hash URLs (`/#/
 | [user-authentication](openspec/specs/user-authentication/spec.md) | Splash, register, login, email verification |
 | [account-recovery](openspec/specs/account-recovery/spec.md) | Recover account and reset password |
 | [onboarding](openspec/specs/onboarding/spec.md) | Profile init form and LLM description choice |
-| [matching-stack](openspec/specs/matching-stack/spec.md) | Home card stack, likes, undo |
+| [matching-stack](openspec/specs/matching-stack/spec.md) | Home card, likes, undo, liked-users page |
+| [digest](openspec/specs/digest/spec.md) | Logged-out digest mail landing |
 | [profile-and-settings](openspec/specs/profile-and-settings/spec.md) | My Card, settings, logout, delete account, legal docs |
 | [admin-console](openspec/specs/admin-console/spec.md) | Admin login, mailing templates, restrictions, SQL viewer |

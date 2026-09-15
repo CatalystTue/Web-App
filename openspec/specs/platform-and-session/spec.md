@@ -44,11 +44,11 @@ The system SHALL set the API host at compile time so local and production builds
 
 #### Scenario: Production default
 - **WHEN** `API_BASE_URL` is omitted
-- **THEN** the system SHALL use `https://server.catalyst-app.org/api/v1`
+- **THEN** the system SHALL use `https://server.catalyst-app.org/api`
 
 #### Scenario: Local backend default
 - **WHEN** a local backend is used
-- **THEN** the documented default local URL SHALL be `http://127.0.0.1:8000/api/v1`
+- **THEN** the documented default local URL SHALL be `http://127.0.0.1:8000/api`
 
 ### [PRE] Requirement: Authenticated HTTP client
 

@@ -6,12 +6,12 @@ Current behavior is specified in [`openspec/specs/`](openspec/specs/). `[PRE]` o
 
 ## Getting Started
 
-The API URL is set at compile time via `--dart-define=API_BASE_URL=...` (`lib/Core/Constants/config.dart`). If omitted, it defaults to `https://server.catalyst-app.org/api/v1`.
+The API URL is set at compile time via `--dart-define=API_BASE_URL=...` (`lib/Core/Constants/config.dart`). If omitted, it defaults to `https://server.catalyst-app.org/api`.
 
 Run locally against a local backend (start the backend first, typically `http://127.0.0.1:8000`):
 
 ```bash
-flutter run -d chrome --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+flutter run -d chrome --dart-define=API_BASE_URL=http://127.0.0.1:8000/api
 ```
 
 Build the web app (production API unless you pass `--dart-define`):

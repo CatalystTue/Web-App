@@ -238,6 +238,82 @@ class AuthenticationService extends ServicesHelper {
     return _adminOk(response);
   }
 
+  Uri _adminUsersUri({String? q, int skip = 0, int limit = 100}) {
+    return Uri.parse('$_adminURL/users').replace(
+      queryParameters: <String, String>{
+        'skip': '$skip',
+        'limit': '$limit',
+        if (q != null && q.isNotEmpty) 'q': q,
+      },
+    );
+  }
+
+  Future<List<Map<String, dynamic>>?> getAdminUsers({
+    String? q,
+    int skip = 0,
+    int limit = 100,
+  }) async {
+    final response = await request(
+      _adminUsersUri(q: q, skip: skip, limit: limit).toString(),
+      serviceType: ServiceType.get,
+      requiredDefaultHeader: true,
+    );
+    if (response is List) {
+      return response
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> createAdminLink({
+    required int userId,
+    required int otherId,
+  }) async {
+    final response = await request(
+      '$_adminURL/links',
+      serviceType: ServiceType.post,
+      requiredDefaultHeader: true,
+      body: {
+        'user_id': userId,
+        'other_id': otherId,
+      },
+    );
+    if (response is Map<String, dynamic> &&
+        !response.containsKey('detail') &&
+        response['id'] != null) {
+      return response;
+    }
+    return null;
+  }
+
+  Future<bool> deleteAdminLink(int id) async {
+    final response = await request(
+      '$_adminURL/links/$id',
+      serviceType: ServiceType.delete,
+      requiredDefaultHeader: true,
+    );
+    return _adminOk(response);
+  }
+
+  Future<int?> sendAdminLinks() async {
+    final response = await request(
+      '$_adminURL/links/send',
+      serviceType: ServiceType.post,
+      requiredDefaultHeader: true,
+      body: <String, dynamic>{},
+    );
+    if (response is Map<String, dynamic> &&
+        !response.containsKey('detail') &&
+        response['sent'] != null) {
+      final sent = response['sent'];
+      if (sent is int) return sent;
+      return int.tryParse(sent.toString());
+    }
+    return null;
+  }
+
   Future<String?> getAdminRestrictionsText() async {
     final response = await request(
       '$_adminURL/restrictions',

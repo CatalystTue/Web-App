@@ -44,7 +44,7 @@ The system SHALL require an admin JWT for the console so members cannot use it.
 
 #### Scenario: Console chrome
 - **WHEN** the console is shown
-- **THEN** the title SHALL be `Admin Welcome` and the sidebar SHALL list Mailing List, Registration Restrictions, and SQL Tables
+- **THEN** the title SHALL be `Admin Welcome` and the sidebar SHALL list Mailing List, Registration Restrictions, User Links, and SQL Tables
 
 #### Scenario: Default panel
 - **WHEN** the console first loads
@@ -201,3 +201,71 @@ The system SHALL let an administrator inspect SQL tables so they can view live d
 #### Scenario: Select table prompt
 - **WHEN** no table is selected and tables exist
 - **THEN** the system SHALL show `Select a SQL table to load columns.`
+
+### Requirement: Admin can search users
+
+When User Links is selected, the system SHALL let an administrator search the user list so they can copy two ids into the link form. Search SHALL GET `/admin/users` with optional query `q` (substring on affiliation, name, or email). The list SHALL show `id`, `name`, `affiliation`, and `email` for each row.
+
+#### Scenario: Load User Links
+- **WHEN** User Links is selected
+- **THEN** the system SHALL GET `/admin/users` and show a searchable list
+
+#### Scenario: Search users
+- **WHEN** the administrator submits a non-empty search
+- **THEN** the system SHALL GET `/admin/users` with that `q` and show matching rows
+
+#### Scenario: Search failure
+- **WHEN** the user list request fails
+- **THEN** the system SHALL show `Could not load users.`
+
+#### Scenario: Empty search results
+- **WHEN** the list is empty
+- **THEN** the system SHALL show `No users found.`
+
+### Requirement: Admin can create a user link
+
+The system SHALL let an administrator post two user ids into the link table. Submit SHALL POST `/admin/links` with `{ "user_id", "other_id" }` as integers. Same user twice SHALL snackbar the server detail (HTTP 400). A missing user SHALL snackbar the server detail (HTTP 404). A pair that is already stored SHALL snackbar the server detail (HTTP 409).
+
+#### Scenario: Create link
+- **WHEN** two distinct ids are submitted
+- **THEN** the system SHALL POST `/admin/links` with those ids
+
+#### Scenario: Create success
+- **WHEN** create succeeds
+- **THEN** the system SHALL snackbar `Link created.`
+
+#### Scenario: Missing ids
+- **WHEN** either id field is empty or not an integer
+- **THEN** the system SHALL snackbar `Enter two user ids.` and SHALL NOT POST `/admin/links`
+
+### Requirement: Admin can delete a user link
+
+The system SHALL let an administrator delete a link by the row id shown in SQL Tables. Delete SHALL DELETE `/admin/links/{id}`. Unknown id SHALL snackbar the server detail (HTTP 404). Delete SHALL NOT claim that mail was revoked.
+
+#### Scenario: Delete link
+- **WHEN** an existing link id is submitted for delete
+- **THEN** the system SHALL DELETE `/admin/links/{id}`
+
+#### Scenario: Delete success
+- **WHEN** delete succeeds
+- **THEN** the system SHALL snackbar `Link deleted.`
+
+#### Scenario: Missing delete id
+- **WHEN** the delete id is empty or not an integer
+- **THEN** the system SHALL snackbar `Enter a link id.` and SHALL NOT DELETE
+
+### Requirement: Admin can send intro mail
+
+The system SHALL let an administrator send remaining intro mail from the User Links panel. Send SHALL POST `/admin/links/send` and snackbar the returned `sent` count. Send SHALL NOT open a new digest page; mail CTAs stay on public `/digest`.
+
+#### Scenario: Send intros
+- **WHEN** Send is tapped
+- **THEN** the system SHALL POST `/admin/links/send`
+
+#### Scenario: Send success
+- **WHEN** send returns `{ "sent": N }`
+- **THEN** the system SHALL snackbar `Sent N intro mail(s).`
+
+#### Scenario: Send failure
+- **WHEN** send fails
+- **THEN** the system SHALL snackbar `Failed to send intro mail.`

@@ -125,6 +125,9 @@ coverage/
 # Mason folder
 mason/
 
+# OpenSpec archived changes
+openspec/changes/archive/
+
 # Symbols
 app.*.symbols
 

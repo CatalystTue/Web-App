@@ -10,7 +10,7 @@ class AppConfig {
 
   String get baseURL => const String.fromEnvironment(
         'API_BASE_URL',
-        defaultValue: 'https://server.catalyst-app.org/api/v1',
+        defaultValue: 'https://server.catalyst-app.org/api',
       );
 
   final routes = AppRoutes();

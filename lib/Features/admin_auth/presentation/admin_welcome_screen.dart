@@ -26,12 +26,18 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
   bool _loadingSqlTables = false;
   bool _loadingSqlColumns = false;
   bool _loadingSqlData = false;
+  bool _loadingUsers = false;
+  bool _creatingLink = false;
+  bool _deletingLink = false;
+  bool _sendingLinks = false;
   String? _mailingPagesError;
   String? _mailingPageHtmlError;
   String? _sqlTablesError;
   String? _sqlColumnsError;
   String? _sqlDataError;
   String? _restrictionsError;
+  String? _usersError;
+  List<Map<String, dynamic>> _adminUsers = const [];
   List<String> _mailingPages = const [];
   List<String> _sqlTables = const [];
   List<String> _sqlColumns = const [];
@@ -53,6 +59,10 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
   String _sendRepeat = 'none';
   final TextEditingController _htmlEditorCtrl = TextEditingController();
   final TextEditingController _restrictionsCtrl = TextEditingController();
+  final TextEditingController _userSearchCtrl = TextEditingController();
+  final TextEditingController _userIdCtrl = TextEditingController();
+  final TextEditingController _otherIdCtrl = TextEditingController();
+  final TextEditingController _linkIdCtrl = TextEditingController();
   final AuthenticationService _authService = AuthenticationService();
 
   @override
@@ -160,8 +170,107 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
     } else if (index == 1) {
       await _loadRestrictions();
     } else if (index == 2) {
+      await _loadAdminUsers();
+    } else if (index == 3) {
       await _loadSqlTables();
     }
+  }
+
+  Future<void> _loadAdminUsers({String? q}) async {
+    setState(() {
+      _loadingUsers = true;
+      _usersError = null;
+    });
+
+    final users = await _authService.getAdminUsers(q: q);
+    if (!mounted) return;
+
+    setState(() {
+      _loadingUsers = false;
+      if (users == null) {
+        _adminUsers = const [];
+        _usersError = 'Could not load users.';
+      } else {
+        _adminUsers = users;
+      }
+    });
+  }
+
+  Future<void> _searchAdminUsers() async {
+    final q = _userSearchCtrl.text.trim();
+    await _loadAdminUsers(q: q.isEmpty ? null : q);
+  }
+
+  int? _parseId(String value) => int.tryParse(value.trim());
+
+  Future<void> _createLink() async {
+    final userId = _parseId(_userIdCtrl.text);
+    final otherId = _parseId(_otherIdCtrl.text);
+    if (userId == null || otherId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter two user ids.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _creatingLink = true;
+    });
+    final created = await _authService.createAdminLink(
+      userId: userId,
+      otherId: otherId,
+    );
+    if (!mounted) return;
+    setState(() {
+      _creatingLink = false;
+    });
+    if (created == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Link created.')),
+    );
+  }
+
+  Future<void> _deleteLink() async {
+    final linkId = _parseId(_linkIdCtrl.text);
+    if (linkId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a link id.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _deletingLink = true;
+    });
+    final success = await _authService.deleteAdminLink(linkId);
+    if (!mounted) return;
+    setState(() {
+      _deletingLink = false;
+    });
+    if (!success) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Link deleted.')),
+    );
+  }
+
+  Future<void> _sendLinks() async {
+    setState(() {
+      _sendingLinks = true;
+    });
+    final sent = await _authService.sendAdminLinks();
+    if (!mounted) return;
+    setState(() {
+      _sendingLinks = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          sent == null
+              ? 'Failed to send intro mail.'
+              : 'Sent $sent intro mail(s).',
+        ),
+      ),
+    );
   }
 
   Future<void> _loadRestrictions() async {
@@ -582,7 +691,142 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
   void dispose() {
     _htmlEditorCtrl.dispose();
     _restrictionsCtrl.dispose();
+    _userSearchCtrl.dispose();
+    _userIdCtrl.dispose();
+    _otherIdCtrl.dispose();
+    _linkIdCtrl.dispose();
     super.dispose();
+  }
+
+  Widget _busyButtonChild(bool busy, String label) {
+    if (!busy) return Text(label);
+    return const SizedBox(
+      height: 16,
+      width: 16,
+      child: CircularProgressIndicator(strokeWidth: 2),
+    );
+  }
+
+  Widget _buildUserLinksPanel() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('User Links', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _userSearchCtrl,
+                  onSubmitted: (_) => _searchAdminUsers(),
+                  decoration: const InputDecoration(
+                    labelText: 'Search affiliation, name, or email',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: _loadingUsers ? null : _searchAdminUsers,
+                child: _busyButtonChild(_loadingUsers, 'Search'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: _loadingUsers
+                ? const Center(child: CircularProgressIndicator())
+                : _usersError != null
+                    ? Center(
+                        child: Text(
+                          _usersError!,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      )
+                    : _adminUsers.isEmpty
+                        ? const Center(child: Text('No users found.'))
+                        : ListView.builder(
+                            itemCount: _adminUsers.length,
+                            itemBuilder: (context, index) {
+                              final user = _adminUsers[index];
+                              final id = user['id']?.toString() ?? '';
+                              final name = user['name']?.toString() ?? '';
+                              final affiliation =
+                                  user['affiliation']?.toString() ?? '';
+                              final email = user['email']?.toString() ?? '';
+                              return ListTile(
+                                dense: true,
+                                title: Text('$id  $name'),
+                                subtitle: Text('$affiliation  $email'),
+                              );
+                            },
+                          ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _userIdCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'User id',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _otherIdCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Other user id',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: _creatingLink ? null : _createLink,
+                child: _busyButtonChild(_creatingLink, 'Create link'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _linkIdCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Link id',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: _deletingLink ? null : _deleteLink,
+                child: _busyButtonChild(_deletingLink, 'Delete link'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton(
+              onPressed: _sendingLinks ? null : _sendLinks,
+              child: _busyButtonChild(_sendingLinks, 'Send intros'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildSendForm() {
@@ -730,6 +974,7 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
     final menuItems = const [
       'Mailing List',
       'Registration Restrictions',
+      'User Links',
       'SQL Tables',
     ];
     return Scaffold(
@@ -1104,7 +1349,7 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
                       ),
                     ],
                   )
-                : _selectedMenuIndex == 2
+                : _selectedMenuIndex == 3
                     ? Row(
                         children: [
                           Container(
@@ -1314,7 +1559,9 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
                               ],
                             ),
                           )
-                        : Center(
+                        : _selectedMenuIndex == 2
+                            ? _buildUserLinksPanel()
+                            : Center(
                             child: Padding(
                               padding: const EdgeInsets.all(24),
                               child: Text(

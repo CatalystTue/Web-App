@@ -54,4 +54,4 @@ Named routes in `lib/Core/Constants/route.dart`. On web they are hash URLs (`/#/
 | [matching-stack](openspec/specs/matching-stack/spec.md) | Home card, likes, undo, liked-users page |
 | [digest](openspec/specs/digest/spec.md) | Logged-out digest mail landing |
 | [profile-and-settings](openspec/specs/profile-and-settings/spec.md) | My Card, settings, logout, delete account, legal docs |
-| [admin-console](openspec/specs/admin-console/spec.md) | Admin login, mailing templates, restrictions, SQL viewer |
+| [admin-console](openspec/specs/admin-console/spec.md) | Admin login, mailing templates, assets, restrictions, SQL viewer |

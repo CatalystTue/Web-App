@@ -19,6 +19,7 @@ dependencies:
   flutter_svg: ^2.0.9
   overlay_support: ^2.1.0
   image_picker: ^1.0.7
+  file_picker: ^8.1.7
   http_parser: ^4.0.2
   appinio_swiper: ^2.1.1
   flutter_html: ^3.0.0

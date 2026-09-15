@@ -24,7 +24,7 @@ The system SHALL let a new member enter who they are so other users can see thei
 
 #### Scenario: Form title and fields
 - **WHEN** `/initform` opens
-- **THEN** the system SHALL title the screen `Your information` and show Name, Affiliation, Position / career stage, Location, Description, and Keywords
+- **THEN** the system SHALL title the screen `Your information` and show Full name, Affiliation, Position / career stage, Location, Description, and Keywords
 
 #### Scenario: Position options
 - **WHEN** Position / career stage is shown
@@ -42,9 +42,13 @@ The system SHALL let a new member enter who they are so other users can see thei
 - **WHEN** the user selects a suggestion
 - **THEN** the affiliation field SHALL be set to that option's `label`
 
+#### Scenario: Description helper
+- **WHEN** Description helper copy is shown
+- **THEN** it SHALL say `Write a short description of your research interests.`
+
 #### Scenario: Keywords helper
 - **WHEN** Keywords helper copy is shown
-- **THEN** it SHALL say that keywords can be used instead of writing a description so AI can draft one
+- **THEN** the Keywords section SHALL have no title, and the helper SHALL say `You can also give a description in brief bullet points, and the AI will draft a full one for you.`
 
 #### Scenario: Add keyword chip
 - **WHEN** the user adds a non-empty keyword that is not already selected
@@ -59,8 +63,8 @@ The system SHALL let a new member enter who they are so other users can see thei
 The system SHALL save what the member entered on Continue and either finish onboarding or generate description drafts.
 
 #### Scenario: Empty name
-- **WHEN** name is empty
-- **THEN** Continue SHALL show `Please enter your name.` and SHALL not save
+- **WHEN** full name is empty
+- **THEN** Continue SHALL show `Please enter your full name.` and SHALL not save
 
 #### Scenario: Empty description and keywords
 - **WHEN** description is empty AND there are no keywords

@@ -64,7 +64,7 @@ The system SHALL show each card with another user's profile fields so the member
 
 ### Requirement: Single discovery card
 
-The system SHALL show one discovery person at a time. The member SHALL NOT finger-swipe. Left and Right keys SHALL NOT browse this screen.
+The system SHALL show one discovery person at a time. Vertical finger-swipe on the card SHALL record know (up) or no interest (down). Left and Right keys SHALL NOT browse this screen.
 
 #### Scenario: One card
 - **WHEN** users are available on `/base`
@@ -79,11 +79,11 @@ The system SHALL show one discovery person at a time. The member SHALL NOT finge
 The system SHALL let a member say they know someone, are not interested, or show interest so the queue advances and interest is stored. POST `/swipes/{targetUserId}` SHALL send `{ "outcome": "interest" | "no_interest" | "know" }`.
 
 #### Scenario: I know this person
-- **WHEN** the user taps `I know this person` or presses Arrow Up
+- **WHEN** the user taps `I know this person`, presses Arrow Up, or swipes the discovery card up
 - **THEN** the system SHALL POST `/swipes/{targetUserId}` with `{ "outcome": "know" }`
 
 #### Scenario: Not interested
-- **WHEN** the user taps `I’m not interested` or presses Arrow Down
+- **WHEN** the user taps `I’m not interested`, presses Arrow Down, or swipes the discovery card down
 - **THEN** the system SHALL POST `/swipes/{targetUserId}` with `{ "outcome": "no_interest" }`
 
 #### Scenario: Light bulb interest
@@ -116,7 +116,7 @@ The system SHALL explain the discovery controls once after onboarding on the fir
 
 #### Scenario: Show intro
 - **WHEN** an onboarded member reaches `/base` AND GetStorage key `feedIntroSeen` is not true
-- **THEN** the system SHALL show a dialog that tells them people are notified when they show interest, to tap the light bulb to show interest, to tap I’m not interested to skip, and to tap I know this person if they already know them so they will not be shown again
+- **THEN** the system SHALL show a dialog that tells them people are notified when they show interest, to tap the light bulb to show interest, to swipe down if they are not interested, and to swipe up if they already know them so they will not be shown again
 
 #### Scenario: Got it
 - **WHEN** the user taps `Got it`
@@ -177,6 +177,26 @@ The system SHALL let a member review people they showed interest in on `/liked-u
 #### Scenario: List window
 - **WHEN** there are more than 5 liked users AND the user taps up/down or presses Arrow Up/Down
 - **THEN** the system SHALL shift the window of visible cards through the liked list
+
+#### Scenario: Hide previous/next
+- **WHEN** fewer than two stacked cards are visible
+- **THEN** the system SHALL NOT show previous/next arrows
+
+#### Scenario: Hide list window arrows
+- **WHEN** there are 5 or fewer liked users
+- **THEN** the system SHALL NOT show up/down arrows
+
+#### Scenario: Arrow pad diamond
+- **WHEN** previous/next and up/down arrows are all shown
+- **THEN** the system SHALL lay them out as a diamond (up above, left and right beside, down below), not in a single row
+
+#### Scenario: Arrow pad vertical
+- **WHEN** only up/down arrows are shown
+- **THEN** the system SHALL stack them vertically
+
+#### Scenario: Arrow pad horizontal
+- **WHEN** only previous/next arrows are shown
+- **THEN** the system SHALL show them as a horizontal pair
 
 #### Scenario: No know or skip
 - **WHEN** `/liked-users` is shown

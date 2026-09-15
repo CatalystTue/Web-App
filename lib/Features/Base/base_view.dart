@@ -28,8 +28,8 @@ class _AppBaseViewState extends State<AppBaseView> {
   void _maybeShowFeedIntro(BuildContext context) {
     if (_introScheduled || controller.isLoadingStackUsers) return;
     final seen = AppRepo().localCache.read<bool>(
-          AppConfig().localCacheKeys.feedIntroSeen,
-        ) ??
+              AppConfig().localCacheKeys.feedIntroSeen,
+            ) ??
         false;
     if (seen) return;
     _introScheduled = true;
@@ -44,8 +44,8 @@ class _AppBaseViewState extends State<AppBaseView> {
             content: const Text(
               'We notify people when you show interest.\n\n'
               'Tap the light bulb to show interest.\n\n'
-              'Tap I’m not interested to skip them.\n\n'
-              'Tap I know this person if you already know them. We won’t show them again.',
+              'Swipe down if you’re not interested.\n\n'
+              'Swipe up if you already know them. We won’t show them again.',
             ),
             actions: [
               TextButton(

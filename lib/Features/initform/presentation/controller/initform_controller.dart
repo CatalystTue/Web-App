@@ -106,7 +106,7 @@ class InitFormController extends GetxController {
     if (nameCtrl.text.trim().isEmpty) {
       AppRepo().showSnackbar(
         label: 'Error',
-        text: 'Please enter your name.',
+        text: 'Please enter your full name.',
         position: SnackPosition.TOP,
       );
       return;

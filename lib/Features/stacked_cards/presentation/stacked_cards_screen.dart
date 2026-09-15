@@ -66,6 +66,9 @@ class StackedCardsScreen extends StatefulWidget {
 class StackedCardsScreenState extends State<StackedCardsScreen> {
   static const Duration _animationDuration = Duration(milliseconds: 500);
   static const int _visibleCardCount = 1;
+  static const double _swipeDistanceThreshold = 80;
+  static const double _swipeVelocityThreshold = 800;
+  static const double _dragSlop = 8;
 
   late List<_StackCard> _cards;
   late List<StackUserModel> _userPool;
@@ -73,6 +76,11 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
   int? _dismissingCardId;
   _DismissDirection? _dismissDirection;
   bool _isDismissing = false;
+  bool _isDragging = false;
+  double _dragDy = 0;
+  int? _dragPointer;
+  double _dragStartY = 0;
+  Duration _dragStartTime = Duration.zero;
   final List<_StackSnapshot> _undoHistory = [];
   final Set<int> _markedCardIds = {};
   final Set<int> _dismissedUserIds = {};
@@ -151,6 +159,74 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     _dismissingCardId = null;
     _dismissDirection = null;
     _isDismissing = false;
+    _resetDrag();
+  }
+
+  void _resetDrag() {
+    _isDragging = false;
+    _dragDy = 0;
+    _dragPointer = null;
+    _dragStartY = 0;
+    _dragStartTime = Duration.zero;
+  }
+
+  void _onCardPointerDown(PointerDownEvent event) {
+    if (_isDismissing || _cards.isEmpty || _dragPointer != null) return;
+    _dragPointer = event.pointer;
+    _dragStartY = event.position.dy;
+    _dragStartTime = event.timeStamp;
+  }
+
+  void _onCardPointerMove(PointerMoveEvent event) {
+    if (event.pointer != _dragPointer || _isDismissing) return;
+    final dy = event.position.dy - _dragStartY;
+    if (!_isDragging && dy.abs() < _dragSlop) return;
+    setState(() {
+      _isDragging = true;
+      _dragDy = dy;
+    });
+  }
+
+  void _onCardPointerUp(PointerUpEvent event) {
+    if (event.pointer != _dragPointer) return;
+    _dragPointer = null;
+    if (_isDismissing || !_isDragging) return;
+    final elapsedSeconds =
+        (event.timeStamp - _dragStartTime).inMicroseconds / 1e6;
+    final velocity = elapsedSeconds > 0 ? _dragDy / elapsedSeconds : 0.0;
+    _finishVerticalDrag(velocity);
+  }
+
+  void _onCardPointerCancel(PointerCancelEvent event) {
+    if (event.pointer != _dragPointer) return;
+    _dragPointer = null;
+    if (!mounted || _isDismissing) return;
+    setState(_resetDrag);
+  }
+
+  void _finishVerticalDrag(double velocity) {
+    final flungKnow = velocity <= -_swipeVelocityThreshold;
+    final flungSkip = velocity >= _swipeVelocityThreshold;
+    final draggedKnow = _dragDy <= -_swipeDistanceThreshold;
+    final draggedSkip = _dragDy >= _swipeDistanceThreshold;
+    final shouldKnow = flungKnow || (draggedKnow && !flungSkip);
+    final shouldSkip = flungSkip || (draggedSkip && !flungKnow);
+
+    if (shouldKnow && !shouldSkip) {
+      setState(() {
+        _isDragging = false;
+      });
+      _dismissFrontCard(_DismissDirection.up, SwipeOutcome.know);
+      return;
+    }
+    if (shouldSkip && !shouldKnow) {
+      setState(() {
+        _isDragging = false;
+      });
+      _dismissFrontCard(_DismissDirection.down, SwipeOutcome.noInterest);
+      return;
+    }
+    setState(_resetDrag);
   }
 
   @override
@@ -238,6 +314,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
         if (dismissedUserId > 0) {
           _dismissedUserIds.remove(dismissedUserId);
         }
+        _resetDrag();
       });
       return;
     }
@@ -252,6 +329,8 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     setState(() {
       _dismissingCardId = card.id;
       _dismissDirection = direction;
+      _dragDy = 0;
+      _isDragging = false;
     });
 
     await Future.delayed(_animationDuration);
@@ -259,8 +338,8 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
 
     if (!mounted) return;
 
-    final wasInterested = outcome == SwipeOutcome.interest &&
-        _markedCardIds.contains(card.id);
+    final wasInterested =
+        outcome == SwipeOutcome.interest && _markedCardIds.contains(card.id);
     setState(() {
       _undoHistory.add(_StackSnapshot(
         cards: List<_StackCard>.from(_cards),
@@ -304,7 +383,10 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
         focusNode: _keyboardFocusNode,
         autofocus: true,
         onKeyEvent: (event) {
-          if (event is! KeyDownEvent || _isDismissing || _cards.isEmpty) {
+          if (event is! KeyDownEvent ||
+              _isDismissing ||
+              _isDragging ||
+              _cards.isEmpty) {
             return;
           }
 
@@ -352,7 +434,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
                             width: 280,
                             child: CustomIconButton(
                               title: 'I know this person',
-                              onTap: _isDismissing
+                              onTap: _isDismissing || _isDragging
                                   ? null
                                   : () => _dismissFrontCard(
                                         _DismissDirection.up,
@@ -367,7 +449,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
                             width: 280,
                             child: CustomOutlineIconButton(
                               title: "I'm not interested",
-                              onTap: _isDismissing
+                              onTap: _isDismissing || _isDragging
                                   ? null
                                   : () => _dismissFrontCard(
                                         _DismissDirection.down,
@@ -387,8 +469,10 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
 
   Widget _buildCard(_StackCard card) {
     final isDismissing = card.id == _dismissingCardId;
+    final isFront = _cards.isNotEmpty && card.id == _cards.first.id;
     const baseLeft = 0.0;
     const baseTop = (kStackHeight - kStackCardHeight) / 2;
+    final dragOffset = isFront && _dismissingCardId == null ? _dragDy : 0.0;
 
     final horizontalDismiss =
         isDismissing && _dismissDirection == _DismissDirection.right
@@ -406,13 +490,34 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     final opacity = isDismissing ? 0.0 : 1.0;
     final isMarked = _markedCardIds.contains(card.id);
 
+    Widget face = StackCardFace(
+      user: card.user,
+      accentColor: card.color,
+      displayName: _displayName(card),
+      interestOn: isMarked,
+      canToggleInterest: !_isDismissing && !_isDragging,
+      onInterestPressed: () => _showInterest(card),
+    );
+    if (isFront) {
+      face = Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: _onCardPointerDown,
+        onPointerMove: _onCardPointerMove,
+        onPointerUp: _onCardPointerUp,
+        onPointerCancel: _onCardPointerCancel,
+        child: face,
+      );
+    }
+
     return AnimatedPositioned(
       key: ValueKey('card-${card.id}'),
       left: baseLeft + horizontalDismiss,
-      top: baseTop + verticalDismiss,
+      top: baseTop + verticalDismiss + dragOffset,
       width: kStackCardWidth,
       height: kStackCardHeight,
-      duration: _animationDuration,
+      duration: _isDragging && _dismissingCardId == null
+          ? Duration.zero
+          : _animationDuration,
       curve: Curves.easeInOutCubic,
       child: AnimatedOpacity(
         opacity: opacity,
@@ -420,14 +525,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
         curve: Curves.easeInOutCubic,
         child: IgnorePointer(
           ignoring: _isDismissing,
-          child: StackCardFace(
-            user: card.user,
-            accentColor: card.color,
-            displayName: _displayName(card),
-            interestOn: isMarked,
-            canToggleInterest: !_isDismissing,
-            onInterestPressed: () => _showInterest(card),
-          ),
+          child: face,
         ),
       ),
     );

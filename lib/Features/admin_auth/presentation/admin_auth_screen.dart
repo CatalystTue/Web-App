@@ -51,6 +51,7 @@ class AdminAuthScreen extends GetView<AdminAuthController> {
             CustomTextField(
               controller: controller.usernameCtrl,
               labelText: "Username",
+              textInputAction: TextInputAction.next,
               validator: (newTextfieldValue) {
                 if (newTextfieldValue == null || newTextfieldValue.isEmpty) {
                   return "Could not be empty";
@@ -69,6 +70,8 @@ class AdminAuthScreen extends GetView<AdminAuthController> {
               labelText: "Password",
               isPassword: true,
               secondIcon: Icons.remove_red_eye,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => controller.loginAdmin(),
               validator: (newTextfieldValue) {
                 if (newTextfieldValue == null || newTextfieldValue.isEmpty) {
                   return "Could not be empty";

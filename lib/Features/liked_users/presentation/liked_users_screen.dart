@@ -328,52 +328,92 @@ class _LikedUsersScreenState extends State<LikedUsersScreen> {
                               ),
                             ),
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              IconButton(
-                                onPressed: _isDismissing
-                                    ? null
-                                    : _bringPreviousCardForward,
-                                icon: const Icon(Icons.arrow_back_ios_new),
-                                color: AppConfig().colors.primaryColor,
-                                iconSize: 32,
-                                tooltip: 'Previous card',
-                              ),
-                              IconButton(
-                                onPressed: _isDismissing
-                                    ? null
-                                    : () => _shiftWindow(-1),
-                                icon: const Icon(Icons.keyboard_arrow_up),
-                                color: AppConfig().colors.primaryColor,
-                                iconSize: 32,
-                                tooltip: 'Previous in list',
-                              ),
-                              IconButton(
-                                onPressed: _isDismissing
-                                    ? null
-                                    : () => _shiftWindow(1),
-                                icon: const Icon(Icons.keyboard_arrow_down),
-                                color: AppConfig().colors.primaryColor,
-                                iconSize: 32,
-                                tooltip: 'Next in list',
-                              ),
-                              IconButton(
-                                onPressed: _isDismissing
-                                    ? null
-                                    : _bringNextCardForward,
-                                icon: const Icon(Icons.arrow_forward_ios),
-                                color: AppConfig().colors.primaryColor,
-                                iconSize: 32,
-                                tooltip: 'Next card',
-                              ),
-                            ],
-                          ),
+                          Center(child: _buildArrowPad()),
                         ],
                       ),
                     ),
         ),
       ),
+    );
+  }
+
+  bool get _showBrowseArrows => _cards.length > 1;
+  bool get _showWindowArrows => _allLiked.length > kStackVisibleCardCount;
+
+  Widget _navArrow({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    return IconButton(
+      onPressed: _isDismissing ? null : onPressed,
+      icon: Icon(icon),
+      color: AppConfig().colors.primaryColor,
+      iconSize: 32,
+      tooltip: tooltip,
+    );
+  }
+
+  Widget _buildArrowPad() {
+    final browse = _showBrowseArrows;
+    final window = _showWindowArrows;
+    if (!browse && !window) {
+      return const SizedBox.shrink();
+    }
+
+    final left = _navArrow(
+      icon: Icons.arrow_back_ios_new,
+      tooltip: 'Previous card',
+      onPressed: _bringPreviousCardForward,
+    );
+    final right = _navArrow(
+      icon: Icons.arrow_forward_ios,
+      tooltip: 'Next card',
+      onPressed: _bringNextCardForward,
+    );
+    final up = _navArrow(
+      icon: Icons.keyboard_arrow_up,
+      tooltip: 'Previous in list',
+      onPressed: () => _shiftWindow(-1),
+    );
+    final down = _navArrow(
+      icon: Icons.keyboard_arrow_down,
+      tooltip: 'Next in list',
+      onPressed: () => _shiftWindow(1),
+    );
+
+    if (browse && window) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          up,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              left,
+              const SizedBox(
+                width: kMinInteractiveDimension,
+                height: kMinInteractiveDimension,
+              ),
+              right,
+            ],
+          ),
+          down,
+        ],
+      );
+    }
+
+    if (window) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [up, down],
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [left, right],
     );
   }
 

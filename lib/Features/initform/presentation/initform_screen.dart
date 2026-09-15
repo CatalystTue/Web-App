@@ -43,13 +43,13 @@ class InitFormScreen extends GetView<InitFormController> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Name',
+              'Full name',
               style: textTheme.titleMedium,
             ),
             Gap(AppConfig().dimens.small),
             CustomTextField(
               controller: controller.nameCtrl,
-              labelText: 'Name',
+              labelText: 'Full name',
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return 'Could not be empty';
@@ -171,18 +171,20 @@ class InitFormScreen extends GetView<InitFormController> {
               style: textTheme.titleMedium,
             ),
             Gap(AppConfig().dimens.small),
+            Text(
+              'Write a short description of your research interests.',
+              style: textTheme.bodySmall?.copyWith(
+                color: AppConfig().colors.txtColor,
+              ),
+            ),
+            Gap(AppConfig().dimens.small),
             CustomMultiLineTextField(
               controller: controller.descriptionCtrl,
               labelText: 'Description',
             ),
             Gap(AppConfig().dimens.medium),
             Text(
-              'Keywords',
-              style: textTheme.titleMedium,
-            ),
-            Gap(AppConfig().dimens.small),
-            Text(
-              'Instead of writing a description yourself, enter a few keywords and AI will draft one for you.',
+              'You can also give a description in brief bullet points, and the AI will draft a full one for you.',
               style: textTheme.bodySmall?.copyWith(
                 color: AppConfig().colors.txtColor,
               ),

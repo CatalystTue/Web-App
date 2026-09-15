@@ -1,9 +1,14 @@
+import 'dart:async';
+
 import 'package:catalyst_flutter_app/Core/Components/html_preview_widget.dart';
 import 'package:catalyst_flutter_app/Core/Constants/config.dart';
 import 'package:catalyst_flutter_app/Core/Data/Services/auth_service.dart';
 import 'package:catalyst_flutter_app/Core/Utils/cookie_storage.dart';
+import 'package:catalyst_flutter_app/Features/admin_auth/admin_asset_name.dart';
 import 'package:catalyst_flutter_app/app_repo.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 class AdminWelcomeScreen extends StatefulWidget {
@@ -14,19 +19,30 @@ class AdminWelcomeScreen extends StatefulWidget {
 }
 
 class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
-  int _selectedMenuIndex = 1;
+  static const int _menuMailing = 0;
+  static const int _menuAssets = 1;
+  static const int _menuRestrictions = 2;
+  static const int _menuUserLinks = 3;
+  static const int _menuSql = 4;
+
+  int _selectedMenuIndex = _menuRestrictions;
   int _selectedMailingPageIndex = 0;
   int _selectedSqlTableIndex = 0;
+  int _selectedAssetIndex = 0;
   bool _loadingMailingPages = false;
   bool _loadingMailingPageHtml = false;
   bool _savingMailingPageHtml = false;
   bool _removingMailingPageHtml = false;
+  bool _loadingAssets = false;
+  bool _loadingAssetBytes = false;
+  bool _savingAsset = false;
+  bool _renamingAsset = false;
+  bool _removingAsset = false;
   bool _loadingRestrictions = false;
-  bool _savingRestrictions = false;
+  bool _mutatingRestrictions = false;
   bool _loadingSqlTables = false;
   bool _loadingSqlColumns = false;
   bool _loadingSqlData = false;
-  bool _loadingUsers = false;
   bool _creatingLink = false;
   bool _deletingLink = false;
   bool _sendingLinks = false;
@@ -36,9 +52,14 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
   String? _sqlColumnsError;
   String? _sqlDataError;
   String? _restrictionsError;
-  String? _usersError;
-  List<Map<String, dynamic>> _adminUsers = const [];
+  String? _assetsError;
+  String? _assetBytesError;
+  List<String> _restrictionDomains = const [];
+  final _userPicker = _AdminUserPicker();
+  final _otherUserPicker = _AdminUserPicker();
   List<String> _mailingPages = const [];
+  List<String> _assets = const [];
+  Uint8List? _selectedAssetBytes;
   List<String> _sqlTables = const [];
   List<String> _sqlColumns = const [];
   List<List<String>> _sqlRowsData = const [];
@@ -58,10 +79,6 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
   DateTime _sendScheduleDate = DateUtils.dateOnly(DateTime.now());
   String _sendRepeat = 'none';
   final TextEditingController _htmlEditorCtrl = TextEditingController();
-  final TextEditingController _restrictionsCtrl = TextEditingController();
-  final TextEditingController _userSearchCtrl = TextEditingController();
-  final TextEditingController _userIdCtrl = TextEditingController();
-  final TextEditingController _otherIdCtrl = TextEditingController();
   final TextEditingController _linkIdCtrl = TextEditingController();
   final AuthenticationService _authService = AuthenticationService();
 
@@ -165,50 +182,511 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
       _selectedMenuIndex = index;
     });
 
-    if (index == 0) {
+    if (index == _menuMailing) {
       await _loadMailingPages();
-    } else if (index == 1) {
+    } else if (index == _menuAssets) {
+      await _loadAssets();
+    } else if (index == _menuRestrictions) {
       await _loadRestrictions();
-    } else if (index == 2) {
-      await _loadAdminUsers();
-    } else if (index == 3) {
+    } else if (index == _menuSql) {
       await _loadSqlTables();
     }
   }
 
-  Future<void> _loadAdminUsers({String? q}) async {
+  Future<void> _loadAssets() async {
     setState(() {
-      _loadingUsers = true;
-      _usersError = null;
+      _loadingAssets = true;
+      _assetsError = null;
+      _selectedAssetIndex = 0;
+      _selectedAssetBytes = null;
+      _assetBytesError = null;
     });
 
-    final users = await _authService.getAdminUsers(q: q);
+    final names = await _authService.getAdminAssets();
     if (!mounted) return;
 
+    if (names == null) {
+      setState(() {
+        _loadingAssets = false;
+        _assets = const [];
+        _assetsError = 'Could not load assets.';
+      });
+      return;
+    }
+
     setState(() {
-      _loadingUsers = false;
-      if (users == null) {
-        _adminUsers = const [];
-        _usersError = 'Could not load users.';
-      } else {
-        _adminUsers = users;
-      }
+      _loadingAssets = false;
+      _assets = names;
     });
   }
 
-  Future<void> _searchAdminUsers() async {
-    final q = _userSearchCtrl.text.trim();
-    await _loadAdminUsers(q: q.isEmpty ? null : q);
+  Future<void> _onAssetTap(int index) async {
+    if (index < 0 || index >= _assets.length) return;
+    final name = _assets[index];
+    setState(() {
+      _selectedAssetIndex = index;
+      _loadingAssetBytes = true;
+      _assetBytesError = null;
+      _selectedAssetBytes = null;
+    });
+
+    final bytes = await _authService.getAdminAssetBytes(name);
+    if (!mounted) return;
+
+    if (bytes == null) {
+      setState(() {
+        _loadingAssetBytes = false;
+        _assetBytesError = 'Could not load asset.';
+      });
+      return;
+    }
+
+    setState(() {
+      _loadingAssetBytes = false;
+      _selectedAssetBytes = bytes;
+    });
+  }
+
+  void _snack(String text) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  Future<void> _uploadAsset() async {
+    final picked = await FilePicker.platform.pickFiles(withData: true);
+    if (picked == null || picked.files.isEmpty) return;
+    final file = picked.files.first;
+    final name = file.name.trim();
+    final bytes = file.bytes;
+    if (bytes == null) {
+      if (!mounted) return;
+      _snack('Failed to save asset.');
+      return;
+    }
+    if (!isValidAdminAssetName(name)) {
+      if (!mounted) return;
+      _snack('Invalid asset name.');
+      return;
+    }
+
+    setState(() => _savingAsset = true);
+    final success = await _authService.saveAdminAsset(name: name, bytes: bytes);
+    if (!mounted) return;
+    setState(() => _savingAsset = false);
+
+    if (!success) {
+      _snack('Failed to save asset.');
+      return;
+    }
+
+    await _loadAssets();
+    if (!mounted) return;
+    final newIndex = _assets.indexOf(name);
+    if (newIndex != -1) {
+      await _onAssetTap(newIndex);
+    }
+    if (!mounted) return;
+    _snack('Asset "$name" saved.');
+  }
+
+  Future<void> _copyAssetName() async {
+    if (_assets.isEmpty || _selectedAssetIndex >= _assets.length) return;
+    final name = _assets[_selectedAssetIndex];
+    await Clipboard.setData(ClipboardData(text: name));
+    if (!mounted) return;
+    _snack('Copied "$name".');
+  }
+
+  Future<void> _renameCurrentAsset() async {
+    if (_assets.isEmpty || _selectedAssetIndex >= _assets.length) return;
+    final oldName = _assets[_selectedAssetIndex];
+    final nameCtrl = TextEditingController(text: oldName);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Rename asset'),
+          content: TextField(
+            controller: nameCtrl,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'New file name',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(nameCtrl.text.trim()),
+              child: const Text('Rename'),
+            ),
+          ],
+        );
+      },
+    );
+    nameCtrl.dispose();
+    if (!mounted || result == null) return;
+
+    if (!isValidAdminAssetName(result)) {
+      _snack('Invalid asset name.');
+      return;
+    }
+    if (result == oldName) {
+      _snack('Enter a new name.');
+      return;
+    }
+
+    setState(() => _renamingAsset = true);
+    var bytes = _selectedAssetBytes;
+    bytes ??= await _authService.getAdminAssetBytes(oldName);
+    if (!mounted) return;
+    if (bytes == null) {
+      setState(() => _renamingAsset = false);
+      _snack('Failed to rename asset.');
+      return;
+    }
+
+    final putOk =
+        await _authService.saveAdminAsset(name: result, bytes: bytes);
+    if (!mounted) return;
+    if (!putOk) {
+      setState(() => _renamingAsset = false);
+      _snack('Failed to rename asset.');
+      return;
+    }
+
+    final deleteOk = await _authService.removeAdminAsset(oldName);
+    if (!mounted) return;
+    setState(() => _renamingAsset = false);
+    if (!deleteOk) {
+      _snack('Failed to rename asset.');
+      await _loadAssets();
+      return;
+    }
+
+    await _loadAssets();
+    if (!mounted) return;
+    final newIndex = _assets.indexOf(result);
+    if (newIndex != -1) {
+      await _onAssetTap(newIndex);
+    }
+    if (!mounted) return;
+    _snack('Asset renamed to "$result".');
+  }
+
+  Future<void> _removeCurrentAsset() async {
+    if (_assets.isEmpty || _selectedAssetIndex >= _assets.length) return;
+    final name = _assets[_selectedAssetIndex];
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Remove asset'),
+          content: Text('Are you sure you want to permanently remove "$name"?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('No'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Yes'),
+            ),
+          ],
+        );
+      },
+    );
+    if (!mounted || confirmed != true) return;
+
+    setState(() => _removingAsset = true);
+    final success = await _authService.removeAdminAsset(name);
+    if (!mounted) return;
+    setState(() => _removingAsset = false);
+
+    if (!success) {
+      _snack('Failed to remove asset.');
+      return;
+    }
+
+    await _loadAssets();
+    if (!mounted) return;
+    _snack('Asset "$name" removed.');
+  }
+
+  Widget _buildAssetsPanel() {
+    final name = CookieStorage.readAdminName() ?? 'Admin';
+    return Row(
+      children: [
+        Container(
+          width: 280,
+          decoration: BoxDecoration(
+            border: Border(
+              right: BorderSide(
+                color: AppConfig().colors.txtColor,
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 10, 10, 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Assets',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Add asset',
+                      onPressed: _loadingAssets || _savingAsset
+                          ? null
+                          : _uploadAsset,
+                      icon: _savingAsset
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.add),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: _loadingAssets
+                    ? const Center(child: CircularProgressIndicator())
+                    : _assetsError != null
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Text(
+                                _assetsError!,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          )
+                        : _assets.isEmpty
+                            ? const Center(child: Text('No assets found.'))
+                            : ListView.builder(
+                                itemCount: _assets.length,
+                                itemBuilder: (context, index) {
+                                  return ListTile(
+                                    title: Text(_assets[index]),
+                                    selected: _selectedAssetIndex == index,
+                                    selectedTileColor: AppConfig()
+                                        .colors
+                                        .secondaryColor
+                                        .withOpacity(0.15),
+                                    onTap: () => _onAssetTap(index),
+                                  );
+                                },
+                              ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _loadingAssetBytes
+              ? const Center(child: CircularProgressIndicator())
+              : _assetBytesError != null
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          _assetBytesError!,
+                          style: Theme.of(context).textTheme.titleMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    )
+                  : _assets.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Text(
+                              'Welcome $name',
+                              style: Theme.of(context).textTheme.headlineSmall,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        )
+                      : _selectedAssetBytes == null
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Text(
+                                  'Select a file to preview.',
+                                  style:
+                                      Theme.of(context).textTheme.titleMedium,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            )
+                          : Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(
+                                    _assets[_selectedAssetIndex],
+                                    style:
+                                        Theme.of(context).textTheme.titleLarge,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Expanded(
+                                    child: Center(
+                                      child: Image.memory(
+                                        _selectedAssetBytes!,
+                                        fit: BoxFit.contain,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          return Text(
+                                            'No preview for this file.',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium,
+                                            textAlign: TextAlign.center,
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Wrap(
+                                    spacing: 12,
+                                    runSpacing: 8,
+                                    alignment: WrapAlignment.end,
+                                    children: [
+                                      OutlinedButton(
+                                        onPressed: _copyAssetName,
+                                        child: const Text('Copy name'),
+                                      ),
+                                      OutlinedButton(
+                                        onPressed: _renamingAsset ||
+                                                _removingAsset
+                                            ? null
+                                            : _renameCurrentAsset,
+                                        child: _renamingAsset
+                                            ? const SizedBox(
+                                                height: 16,
+                                                width: 16,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                ),
+                                              )
+                                            : const Text('Rename'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: _renamingAsset ||
+                                                _removingAsset
+                                            ? null
+                                            : _removeCurrentAsset,
+                                        child: _removingAsset
+                                            ? const SizedBox(
+                                                height: 16,
+                                                width: 16,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                ),
+                                              )
+                                            : const Text('Remove'),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+        ),
+      ],
+    );
   }
 
   int? _parseId(String value) => int.tryParse(value.trim());
 
+  int? _idFromUser(Map<String, dynamic>? user) {
+    final raw = user?['id'];
+    if (raw is int) return raw;
+    return int.tryParse(raw?.toString() ?? '');
+  }
+
+  String _userLabel(Map<String, dynamic> user) {
+    final name = user['name']?.toString() ?? '';
+    final email = user['email']?.toString() ?? '';
+    if (name.isNotEmpty && email.isNotEmpty) return '$name  $email';
+    if (name.isNotEmpty) return name;
+    if (email.isNotEmpty) return email;
+    return user['id']?.toString() ?? '';
+  }
+
+  void _onPickerChanged(_AdminUserPicker picker, String value) {
+    picker.debounce?.cancel();
+    final query = value.trim();
+    setState(() {
+      picker.selected = null;
+      picker.results = const [];
+      picker.error = null;
+      picker.loading = false;
+    });
+    if (query.isEmpty) return;
+
+    picker.debounce = Timer(const Duration(milliseconds: 400), () {
+      _searchPickerUsers(picker, query);
+    });
+  }
+
+  Future<void> _searchPickerUsers(
+    _AdminUserPicker picker,
+    String query,
+  ) async {
+    setState(() {
+      picker.loading = true;
+      picker.error = null;
+    });
+
+    final users = await _authService.getAdminUsers(q: query);
+    if (!mounted) return;
+    if (picker.controller.text.trim() != query) return;
+
+    setState(() {
+      picker.loading = false;
+      if (users == null) {
+        picker.results = const [];
+        picker.error = 'Could not load users.';
+      } else {
+        picker.results = users;
+      }
+    });
+  }
+
+  void _selectPickerUser(
+    _AdminUserPicker picker,
+    Map<String, dynamic> user,
+  ) {
+    picker.debounce?.cancel();
+    picker.controller.text = _userLabel(user);
+    setState(() {
+      picker.selected = user;
+      picker.results = const [];
+      picker.error = null;
+      picker.loading = false;
+    });
+  }
+
   Future<void> _createLink() async {
-    final userId = _parseId(_userIdCtrl.text);
-    final otherId = _parseId(_otherIdCtrl.text);
+    final userId = _idFromUser(_userPicker.selected);
+    final otherId = _idFromUser(_otherUserPicker.selected);
     if (userId == null || otherId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter two user ids.')),
+        const SnackBar(content: Text('Select two users.')),
       );
       return;
     }
@@ -254,6 +732,26 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
   }
 
   Future<void> _sendLinks() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Are you sure?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('No'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Yes'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
+
     setState(() {
       _sendingLinks = true;
     });
@@ -279,12 +777,13 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
       _restrictionsError = null;
     });
 
-    final text = await _authService.getAdminRestrictionsText();
+    final domains = await _authService.getAdminRestrictionDomains();
     if (!mounted) return;
 
-    if (text == null) {
+    if (domains == null) {
       setState(() {
         _loadingRestrictions = false;
+        _restrictionDomains = const [];
         _restrictionsError = 'Could not load registration restrictions.';
       });
       return;
@@ -292,31 +791,156 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
 
     setState(() {
       _loadingRestrictions = false;
-      _restrictionsCtrl.text = text;
+      _restrictionDomains = domains;
     });
   }
 
-  Future<void> _saveRestrictions() async {
-    setState(() {
-      _savingRestrictions = true;
-    });
+  Future<String?> _promptDomain({
+    required String title,
+    required String actionLabel,
+    String initial = '',
+  }) async {
+    final controller = TextEditingController(text: initial);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(title),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Domain (hostname, email, or URL)',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (value) =>
+                Navigator.of(dialogContext).pop(value.trim()),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(controller.text.trim()),
+              child: Text(actionLabel),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    if (result == null || result.isEmpty) return null;
+    return result;
+  }
 
-    final success =
-        await _authService.saveAdminRestrictionsText(_restrictionsCtrl.text);
+  Future<void> _addRestrictionDomain() async {
+    final domain = await _promptDomain(
+      title: 'Add domain',
+      actionLabel: 'Add',
+    );
+    if (domain == null || !mounted) return;
+
+    setState(() {
+      _mutatingRestrictions = true;
+    });
+    final success = await _authService.addAdminRestrictionDomain(domain);
     if (!mounted) return;
+    setState(() {
+      _mutatingRestrictions = false;
+    });
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to save registration restrictions.'),
+        ),
+      );
+      return;
+    }
+    await _loadRestrictions();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Domain added.')),
+    );
+  }
+
+  Future<void> _editRestrictionDomain(String current) async {
+    final replacement = await _promptDomain(
+      title: 'Edit domain',
+      actionLabel: 'Save',
+      initial: current,
+    );
+    if (replacement == null || !mounted) return;
 
     setState(() {
-      _savingRestrictions = false;
+      _mutatingRestrictions = true;
     });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          success
-              ? 'Registration restrictions saved.'
-              : 'Failed to save registration restrictions.',
+    final success = await _authService.replaceAdminRestrictionDomain(
+      current: current,
+      replacement: replacement,
+    );
+    if (!mounted) return;
+    setState(() {
+      _mutatingRestrictions = false;
+    });
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to save registration restrictions.'),
         ),
-      ),
+      );
+      return;
+    }
+    await _loadRestrictions();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Domain updated.')),
+    );
+  }
+
+  Future<void> _removeRestrictionDomain(String domain) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Remove domain?'),
+          content: Text('Remove $domain from registration restrictions?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('No'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Yes'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _mutatingRestrictions = true;
+    });
+    final success = await _authService.deleteAdminRestrictionDomain(domain);
+    if (!mounted) return;
+    setState(() {
+      _mutatingRestrictions = false;
+    });
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to save registration restrictions.'),
+        ),
+      );
+      return;
+    }
+    await _loadRestrictions();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Domain removed.')),
     );
   }
 
@@ -690,10 +1314,8 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
   @override
   void dispose() {
     _htmlEditorCtrl.dispose();
-    _restrictionsCtrl.dispose();
-    _userSearchCtrl.dispose();
-    _userIdCtrl.dispose();
-    _otherIdCtrl.dispose();
+    _userPicker.dispose();
+    _otherUserPicker.dispose();
     _linkIdCtrl.dispose();
     super.dispose();
   }
@@ -707,96 +1329,109 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
     );
   }
 
-  Widget _buildUserLinksPanel() {
+  Widget _buildRestrictionsPanel() {
     return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Registration Restrictions',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: _loadingRestrictions || _mutatingRestrictions
+                    ? null
+                    : _addRestrictionDomain,
+                icon: const Icon(Icons.add),
+                label: const Text('Add'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: _loadingRestrictions
+                ? const Center(child: CircularProgressIndicator())
+                : _restrictionsError != null
+                    ? Center(
+                        child: Text(
+                          _restrictionsError!,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      )
+                    : _restrictionDomains.isEmpty
+                        ? const Center(
+                            child: Text('No registration domains.'),
+                          )
+                        : ListView.separated(
+                            itemCount: _restrictionDomains.length,
+                            separatorBuilder: (_, __) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final domain = _restrictionDomains[index];
+                              return ListTile(
+                                title: Text(domain),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      tooltip: 'Edit',
+                                      onPressed: _mutatingRestrictions
+                                          ? null
+                                          : () =>
+                                              _editRestrictionDomain(domain),
+                                      icon: const Icon(Icons.edit_outlined),
+                                    ),
+                                    IconButton(
+                                      tooltip: 'Remove',
+                                      onPressed: _mutatingRestrictions
+                                          ? null
+                                          : () =>
+                                              _removeRestrictionDomain(domain),
+                                      icon: const Icon(Icons.delete_outline),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserLinksPanel() {
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('User Links', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _userSearchCtrl,
-                  onSubmitted: (_) => _searchAdminUsers(),
-                  decoration: const InputDecoration(
-                    labelText: 'Search affiliation, name, or email',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              ElevatedButton(
-                onPressed: _loadingUsers ? null : _searchAdminUsers,
-                child: _busyButtonChild(_loadingUsers, 'Search'),
-              ),
-            ],
+          _buildUserPickerField(
+            label: 'User',
+            picker: _userPicker,
           ),
           const SizedBox(height: 16),
-          Expanded(
-            child: _loadingUsers
-                ? const Center(child: CircularProgressIndicator())
-                : _usersError != null
-                    ? Center(
-                        child: Text(
-                          _usersError!,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      )
-                    : _adminUsers.isEmpty
-                        ? const Center(child: Text('No users found.'))
-                        : ListView.builder(
-                            itemCount: _adminUsers.length,
-                            itemBuilder: (context, index) {
-                              final user = _adminUsers[index];
-                              final id = user['id']?.toString() ?? '';
-                              final name = user['name']?.toString() ?? '';
-                              final affiliation =
-                                  user['affiliation']?.toString() ?? '';
-                              final email = user['email']?.toString() ?? '';
-                              return ListTile(
-                                dense: true,
-                                title: Text('$id  $name'),
-                                subtitle: Text('$affiliation  $email'),
-                              );
-                            },
-                          ),
+          _buildUserPickerField(
+            label: 'Other user',
+            picker: _otherUserPicker,
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _userIdCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'User id',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _otherIdCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Other user id',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              ElevatedButton(
-                onPressed: _creatingLink ? null : _createLink,
-                child: _busyButtonChild(_creatingLink, 'Create link'),
-              ),
-            ],
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton(
+              onPressed: _creatingLink ? null : _createLink,
+              child: _busyButtonChild(_creatingLink, 'Create link'),
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
           Row(
             children: [
               Expanded(
@@ -826,6 +1461,78 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildUserPickerField({
+    required String label,
+    required _AdminUserPicker picker,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: picker.controller,
+          onChanged: (value) => _onPickerChanged(picker, value),
+          decoration: InputDecoration(
+            labelText: label,
+            hintText: 'Search affiliation, name, or email',
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        if (picker.loading)
+          const Padding(
+            padding: EdgeInsets.only(top: 10),
+            child: LinearProgressIndicator(),
+          ),
+        if (picker.error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(picker.error!),
+          )
+        else if (picker.controller.text.trim().isNotEmpty &&
+            picker.selected == null &&
+            !picker.loading &&
+            picker.results.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text('No users found.'),
+          )
+        else if (picker.results.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            constraints: const BoxConstraints(maxHeight: 220),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppConfig().colors.backGroundColor,
+                width: 0.6,
+              ),
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: picker.results.length,
+              separatorBuilder: (_, __) => Divider(
+                height: 1,
+                color: AppConfig().colors.backGroundColor,
+              ),
+              itemBuilder: (context, index) {
+                final user = picker.results[index];
+                final id = user['id']?.toString() ?? '';
+                final name = user['name']?.toString() ?? '';
+                final affiliation = user['affiliation']?.toString() ?? '';
+                final email = user['email']?.toString() ?? '';
+                return ListTile(
+                  dense: true,
+                  title: Text('$id  $name'),
+                  subtitle: Text('$affiliation  $email'),
+                  onTap: () => _selectPickerUser(picker, user),
+                );
+              },
+            ),
+          ),
+      ],
     );
   }
 
@@ -973,6 +1680,7 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
     final name = CookieStorage.readAdminName() ?? 'Admin';
     final menuItems = const [
       'Mailing List',
+      'Assets',
       'Registration Restrictions',
       'User Links',
       'SQL Tables',
@@ -1029,7 +1737,7 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
             ),
           ),
           Expanded(
-            child: _selectedMenuIndex == 0
+            child: _selectedMenuIndex == _menuMailing
                 ? Row(
                     children: [
                       Container(
@@ -1349,7 +2057,9 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
                       ),
                     ],
                   )
-                : _selectedMenuIndex == 3
+                : _selectedMenuIndex == _menuAssets
+                    ? _buildAssetsPanel()
+                    : _selectedMenuIndex == _menuSql
                     ? Row(
                         children: [
                           Container(
@@ -1500,66 +2210,9 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
                           ),
                         ],
                       )
-                    : _selectedMenuIndex == 1
-                        ? Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Registration Restrictions',
-                                  style: Theme.of(context).textTheme.titleLarge,
-                                ),
-                                const SizedBox(height: 16),
-                                Expanded(
-                                  child: _loadingRestrictions
-                                      ? const Center(
-                                          child: CircularProgressIndicator())
-                                      : _restrictionsError != null
-                                          ? Center(
-                                              child: Text(
-                                                _restrictionsError!,
-                                                textAlign: TextAlign.center,
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .titleMedium,
-                                              ),
-                                            )
-                                          : TextField(
-                                              controller: _restrictionsCtrl,
-                                              expands: true,
-                                              maxLines: null,
-                                              minLines: null,
-                                              keyboardType:
-                                                  TextInputType.multiline,
-                                              decoration: const InputDecoration(
-                                                border: OutlineInputBorder(),
-                                              ),
-                                            ),
-                                ),
-                                const SizedBox(height: 12),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: ElevatedButton(
-                                    onPressed: _loadingRestrictions ||
-                                            _savingRestrictions
-                                        ? null
-                                        : _saveRestrictions,
-                                    child: _savingRestrictions
-                                        ? const SizedBox(
-                                            height: 16,
-                                            width: 16,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                            ),
-                                          )
-                                        : const Text('Save'),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : _selectedMenuIndex == 2
+                    : _selectedMenuIndex == _menuRestrictions
+                        ? _buildRestrictionsPanel()
+                        : _selectedMenuIndex == _menuUserLinks
                             ? _buildUserLinksPanel()
                             : Center(
                             child: Padding(
@@ -1576,5 +2229,19 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
         ],
       ),
     );
+  }
+}
+
+class _AdminUserPicker {
+  final controller = TextEditingController();
+  Timer? debounce;
+  List<Map<String, dynamic>> results = const [];
+  bool loading = false;
+  String? error;
+  Map<String, dynamic>? selected;
+
+  void dispose() {
+    debounce?.cancel();
+    controller.dispose();
   }
 }

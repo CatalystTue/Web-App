@@ -1,9 +1,13 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:catalyst_flutter_app/Core/Constants/config.dart';
 import 'package:catalyst_flutter_app/Core/Utils/enum.dart';
 import 'package:catalyst_flutter_app/app_repo.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:http_parser/http_parser.dart';
+
 import '../../../../Core/Data/Services/services_helper.dart';
 
 class AuthenticationService extends ServicesHelper {
@@ -45,6 +49,9 @@ class AuthenticationService extends ServicesHelper {
 
   String _adminTemplateUrl(String name) =>
       '$_adminURL/templates/${Uri.encodeComponent(name)}';
+
+  String _adminAssetUrl(String name) =>
+      '$_adminURL/assets/${Uri.encodeComponent(name)}';
 
   Uri _adminSqlUri({String? table, String? column}) {
     return Uri.parse('$_adminURL/sql').replace(
@@ -174,6 +181,78 @@ class AuthenticationService extends ServicesHelper {
   Future<bool> removeAdminMailingPage(String htmlName) async {
     final response = await request(
       _adminTemplateUrl(htmlName),
+      serviceType: ServiceType.delete,
+      requiredDefaultHeader: true,
+    );
+    return _adminOk(response);
+  }
+
+  Future<List<String>?> getAdminAssets() async {
+    final response = await request(
+      '$_adminURL/assets',
+      serviceType: ServiceType.get,
+      requiredDefaultHeader: true,
+    );
+    if (response == null) return null;
+    if (response is Map && response.containsKey('detail')) return null;
+    if (response is List) {
+      return response.map((item) => item?.toString() ?? '').toList();
+    }
+    return null;
+  }
+
+  Future<Uint8List?> getAdminAssetBytes(String name) async {
+    final uri = Uri.parse(_adminAssetUrl(name));
+    try {
+      final headers = <String, String>{};
+      final token = AppRepo().jwtToken?.trim();
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+      final response = await http.get(uri, headers: headers);
+      if (await _adminHttpFailed(response.statusCode, response.body)) {
+        return null;
+      }
+      if (response.statusCode != 200) return null;
+      return response.bodyBytes;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> saveAdminAsset({
+    required String name,
+    required List<int> bytes,
+  }) async {
+    final uri = Uri.parse(_adminAssetUrl(name));
+    try {
+      final request = http.MultipartRequest('PUT', uri);
+      final token = AppRepo().jwtToken?.trim();
+      if (token != null && token.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: name,
+          contentType: MediaType('application', 'octet-stream'),
+        ),
+      );
+      final streamed = await request.send().timeout(const Duration(seconds: 30));
+      final response = await http.Response.fromStream(streamed);
+      if (await _adminHttpFailed(response.statusCode, response.body)) {
+        return false;
+      }
+      return _httpOk(response.statusCode);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> removeAdminAsset(String name) async {
+    final response = await request(
+      _adminAssetUrl(name),
       serviceType: ServiceType.delete,
       requiredDefaultHeader: true,
     );
@@ -314,24 +393,54 @@ class AuthenticationService extends ServicesHelper {
     return null;
   }
 
-  Future<String?> getAdminRestrictionsText() async {
+  String _restrictionDomainUrl(String domain) =>
+      '$_adminURL/restrictions/${Uri.encodeComponent(domain)}';
+
+  Future<List<String>?> getAdminRestrictionDomains() async {
     final response = await request(
       '$_adminURL/restrictions',
       serviceType: ServiceType.get,
       requiredDefaultHeader: true,
     );
-    if (response is Map<String, dynamic> && !response.containsKey('detail')) {
-      return response['text']?.toString() ?? '';
+    if (response is Map<String, dynamic> &&
+        !response.containsKey('detail') &&
+        response['domains'] is List) {
+      return (response['domains'] as List)
+          .map((item) => item?.toString() ?? '')
+          .where((item) => item.isNotEmpty)
+          .toList();
     }
     return null;
   }
 
-  Future<bool> saveAdminRestrictionsText(String text) async {
+  Future<bool> addAdminRestrictionDomain(String domain) async {
     final response = await request(
       '$_adminURL/restrictions',
+      serviceType: ServiceType.post,
+      requiredDefaultHeader: true,
+      body: {'domain': domain},
+    );
+    return _adminOk(response);
+  }
+
+  Future<bool> replaceAdminRestrictionDomain({
+    required String current,
+    required String replacement,
+  }) async {
+    final response = await request(
+      _restrictionDomainUrl(current),
       serviceType: ServiceType.put,
       requiredDefaultHeader: true,
-      body: {'text': text},
+      body: {'domain': replacement},
+    );
+    return _adminOk(response);
+  }
+
+  Future<bool> deleteAdminRestrictionDomain(String domain) async {
+    final response = await request(
+      _restrictionDomainUrl(domain),
+      serviceType: ServiceType.delete,
+      requiredDefaultHeader: true,
     );
     return _adminOk(response);
   }

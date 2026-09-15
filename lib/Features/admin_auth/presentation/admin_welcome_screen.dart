@@ -5,8 +5,8 @@ import 'package:catalyst_flutter_app/Core/Constants/config.dart';
 import 'package:catalyst_flutter_app/Core/Data/Services/auth_service.dart';
 import 'package:catalyst_flutter_app/Core/Utils/cookie_storage.dart';
 import 'package:catalyst_flutter_app/Features/admin_auth/admin_asset_name.dart';
+import 'package:catalyst_flutter_app/Features/admin_auth/pick_admin_asset_file.dart';
 import 'package:catalyst_flutter_app/app_repo.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -252,16 +252,17 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
   }
 
   Future<void> _uploadAsset() async {
-    final picked = await FilePicker.platform.pickFiles(withData: true);
-    if (picked == null || picked.files.isEmpty) return;
-    final file = picked.files.first;
-    final name = file.name.trim();
-    final bytes = file.bytes;
-    if (bytes == null) {
+    ({String name, Uint8List bytes})? picked;
+    try {
+      picked = await pickAdminAssetFile();
+    } catch (_) {
       if (!mounted) return;
       _snack('Failed to save asset.');
       return;
     }
+    if (!mounted || picked == null) return;
+    final name = picked.name.trim();
+    final bytes = picked.bytes;
     if (!isValidAdminAssetName(name)) {
       if (!mounted) return;
       _snack('Invalid asset name.');

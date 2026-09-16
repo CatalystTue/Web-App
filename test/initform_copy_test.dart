@@ -29,6 +29,7 @@ void main() {
       ),
       findsNothing,
     );
-    expect(find.text('Keywords'), findsOneWidget);
+    expect(find.text('Bullet points'), findsOneWidget);
+    expect(find.text('Keywords'), findsNothing);
   });
 }

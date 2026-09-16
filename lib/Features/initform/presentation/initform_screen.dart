@@ -196,7 +196,7 @@ class InitFormScreen extends GetView<InitFormController> {
                 Expanded(
                   child: CustomTextField(
                     controller: controller.keywordsCtrl,
-                    labelText: 'Keywords',
+                    labelText: 'Bullet points',
                   ),
                 ),
                 const SizedBox(width: 10),

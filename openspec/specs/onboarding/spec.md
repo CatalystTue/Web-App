@@ -24,7 +24,7 @@ The system SHALL let a new member enter who they are so other users can see thei
 
 #### Scenario: Form title and fields
 - **WHEN** `/initform` opens
-- **THEN** the system SHALL title the screen `Your information` and show Full name, Affiliation, Position / career stage, Location, Description, and Keywords
+- **THEN** the system SHALL title the screen `Your information` and show Full name, Affiliation, Position / career stage, Location, Description, and Bullet points
 
 #### Scenario: Position options
 - **WHEN** Position / career stage is shown
@@ -49,6 +49,10 @@ The system SHALL let a new member enter who they are so other users can see thei
 #### Scenario: Keywords helper
 - **WHEN** Keywords helper copy is shown
 - **THEN** the Keywords section SHALL have no title, and the helper SHALL say `You can also give a description in brief bullet points, and the AI will draft a full one for you.`
+
+#### Scenario: Bullet field ghost text
+- **WHEN** the bullet field is empty
+- **THEN** it SHALL show ghost text `Bullet points` and SHALL NOT show `Keywords`
 
 #### Scenario: Add keyword chip
 - **WHEN** the user adds a non-empty keyword that is not already selected

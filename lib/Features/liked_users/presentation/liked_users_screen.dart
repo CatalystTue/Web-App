@@ -2,11 +2,17 @@ import 'package:catalyst_flutter_app/Core/Constants/config.dart';
 import 'package:catalyst_flutter_app/Core/Data/Models/stack_user_model.dart';
 import 'package:catalyst_flutter_app/Core/Data/Services/card_service.dart';
 import 'package:catalyst_flutter_app/Features/stacked_cards/presentation/stack_card_face.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class LikedUsersScreen extends StatefulWidget {
-  const LikedUsersScreen({super.key});
+  final List<StackUserModel>? initialUsers;
+
+  const LikedUsersScreen({
+    super.key,
+    this.initialUsers,
+  });
 
   @override
   State<LikedUsersScreen> createState() => _LikedUsersScreenState();
@@ -14,6 +20,9 @@ class LikedUsersScreen extends StatefulWidget {
 
 class _LikedUsersScreenState extends State<LikedUsersScreen> {
   static const Duration _animationDuration = Duration(milliseconds: 500);
+  static const double _swipeDistanceThreshold = 80;
+  static const double _swipeVelocityThreshold = 800;
+  static const double _dragSlop = 8;
 
   bool _loading = true;
   List<StackUserModel> _allLiked = [];
@@ -23,6 +32,13 @@ class _LikedUsersScreenState extends State<LikedUsersScreen> {
   int _nextCardId = 0;
   int? _dismissingCardId;
   bool _isDismissing = false;
+  bool _isDragging = false;
+  double _dragDx = 0;
+  double _dragDy = 0;
+  int? _dragPointer;
+  double _dragStartX = 0;
+  double _dragStartY = 0;
+  Duration _dragStartTime = Duration.zero;
   final Map<int, GlobalKey> _cardKeys = {};
   final FocusNode _keyboardFocusNode = FocusNode();
 
@@ -40,7 +56,13 @@ class _LikedUsersScreenState extends State<LikedUsersScreen> {
   void initState() {
     super.initState();
     _cards = [];
-    _loadLiked();
+    if (widget.initialUsers != null) {
+      _allLiked = List<StackUserModel>.from(widget.initialUsers!);
+      _rebuildWindowCards();
+      _loading = false;
+    } else {
+      _loadLiked();
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _keyboardFocusNode.requestFocus();
@@ -52,6 +74,105 @@ class _LikedUsersScreenState extends State<LikedUsersScreen> {
   void dispose() {
     _keyboardFocusNode.dispose();
     super.dispose();
+  }
+
+  bool get _canBrowse => _cards.length > 1;
+  bool get _canShiftWindow => _allLiked.length > kStackVisibleCardCount;
+
+  void _resetDrag() {
+    _isDragging = false;
+    _dragDx = 0;
+    _dragDy = 0;
+    _dragPointer = null;
+    _dragStartX = 0;
+    _dragStartY = 0;
+    _dragStartTime = Duration.zero;
+  }
+
+  void _onCardPointerDown(PointerDownEvent event) {
+    if (_isDismissing || _cards.isEmpty || _dragPointer != null) return;
+    _dragPointer = event.pointer;
+    _dragStartX = event.position.dx;
+    _dragStartY = event.position.dy;
+    _dragStartTime = event.timeStamp;
+  }
+
+  void _onCardPointerMove(PointerMoveEvent event) {
+    if (event.pointer != _dragPointer || _isDismissing) return;
+    final dx = event.position.dx - _dragStartX;
+    final dy = event.position.dy - _dragStartY;
+    if (!_isDragging && dx.abs() < _dragSlop && dy.abs() < _dragSlop) return;
+    setState(() {
+      _isDragging = true;
+      _dragDx = dx;
+      _dragDy = dy;
+    });
+  }
+
+  void _onCardPointerUp(PointerUpEvent event) {
+    if (event.pointer != _dragPointer) return;
+    _dragPointer = null;
+    if (_isDismissing || !_isDragging) return;
+    final elapsedSeconds =
+        (event.timeStamp - _dragStartTime).inMicroseconds / 1e6;
+    final vx = elapsedSeconds > 0 ? _dragDx / elapsedSeconds : 0.0;
+    final vy = elapsedSeconds > 0 ? _dragDy / elapsedSeconds : 0.0;
+    _finishDrag(vx, vy);
+  }
+
+  void _onCardPointerCancel(PointerCancelEvent event) {
+    if (event.pointer != _dragPointer) return;
+    _dragPointer = null;
+    if (!mounted || _isDismissing) return;
+    setState(_resetDrag);
+  }
+
+  void _finishDrag(double vx, double vy) {
+    final flungLeft = vx <= -_swipeVelocityThreshold;
+    final flungRight = vx >= _swipeVelocityThreshold;
+    final flungUp = vy <= -_swipeVelocityThreshold;
+    final flungDown = vy >= _swipeVelocityThreshold;
+    final draggedLeft = _dragDx <= -_swipeDistanceThreshold;
+    final draggedRight = _dragDx >= _swipeDistanceThreshold;
+    final draggedUp = _dragDy <= -_swipeDistanceThreshold;
+    final draggedDown = _dragDy >= _swipeDistanceThreshold;
+
+    final shouldLeft = flungLeft || (draggedLeft && !flungRight);
+    final shouldRight = flungRight || (draggedRight && !flungLeft);
+    final shouldUp = flungUp || (draggedUp && !flungDown);
+    final shouldDown = flungDown || (draggedDown && !flungUp);
+
+    final velocityDominant = vx.abs() >= _swipeVelocityThreshold ||
+        vy.abs() >= _swipeVelocityThreshold;
+    final useHorizontal = velocityDominant
+        ? vx.abs() >= vy.abs()
+        : _dragDx.abs() >= _dragDy.abs();
+
+    if (useHorizontal && _canBrowse) {
+      if (shouldLeft && !shouldRight) {
+        setState(_resetDrag);
+        _bringPreviousCardForward();
+        return;
+      }
+      if (shouldRight && !shouldLeft) {
+        setState(_resetDrag);
+        _bringNextCardForward();
+        return;
+      }
+    }
+    if (!useHorizontal && _canShiftWindow) {
+      if (shouldUp && !shouldDown) {
+        setState(_resetDrag);
+        _shiftWindow(-1);
+        return;
+      }
+      if (shouldDown && !shouldUp) {
+        setState(_resetDrag);
+        _shiftWindow(1);
+        return;
+      }
+    }
+    setState(_resetDrag);
   }
 
   Future<void> _loadLiked() async {
@@ -271,7 +392,10 @@ class _LikedUsersScreenState extends State<LikedUsersScreen> {
         focusNode: _keyboardFocusNode,
         autofocus: true,
         onKeyEvent: (event) {
-          if (event is! KeyDownEvent || _isDismissing || _cards.isEmpty) {
+          if (event is! KeyDownEvent ||
+              _isDismissing ||
+              _isDragging ||
+              _cards.isEmpty) {
             return;
           }
           if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
@@ -300,120 +424,37 @@ class _LikedUsersScreenState extends State<LikedUsersScreen> {
                     )
                   : Padding(
                       padding: EdgeInsets.all(AppConfig().dimens.medium),
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: LayoutBuilder(
-                              builder: (context, constraints) => Center(
+                      child: ScrollConfiguration(
+                        behavior: ScrollConfiguration.of(context).copyWith(
+                          dragDevices: const <PointerDeviceKind>{},
+                        ),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) => Center(
+                            child: SizedBox(
+                              width: constraints.constrainWidth(kStackMaxWidth),
+                              height: kStackHeight,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                clipBehavior: Clip.none,
                                 child: SizedBox(
-                                  width:
-                                      constraints.constrainWidth(kStackMaxWidth),
+                                  width: kStackMaxWidth,
                                   height: kStackHeight,
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
+                                  child: Stack(
+                                    alignment: Alignment.center,
                                     clipBehavior: Clip.none,
-                                    child: SizedBox(
-                                      width: kStackMaxWidth,
-                                      height: kStackHeight,
-                                      child: Stack(
-                                        alignment: Alignment.center,
-                                        clipBehavior: Clip.none,
-                                        children: _sortedCards
-                                            .map(_buildStackedCard)
-                                            .toList(),
-                                      ),
-                                    ),
+                                    children: _sortedCards
+                                        .map(_buildStackedCard)
+                                        .toList(),
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                          Center(child: _buildArrowPad()),
-                        ],
+                        ),
                       ),
                     ),
         ),
       ),
-    );
-  }
-
-  bool get _showBrowseArrows => _cards.length > 1;
-  bool get _showWindowArrows => _allLiked.length > kStackVisibleCardCount;
-
-  Widget _navArrow({
-    required IconData icon,
-    required String tooltip,
-    required VoidCallback onPressed,
-  }) {
-    return IconButton(
-      onPressed: _isDismissing ? null : onPressed,
-      icon: Icon(icon),
-      color: AppConfig().colors.primaryColor,
-      iconSize: 32,
-      tooltip: tooltip,
-    );
-  }
-
-  Widget _buildArrowPad() {
-    final browse = _showBrowseArrows;
-    final window = _showWindowArrows;
-    if (!browse && !window) {
-      return const SizedBox.shrink();
-    }
-
-    final left = _navArrow(
-      icon: Icons.arrow_back_ios_new,
-      tooltip: 'Previous card',
-      onPressed: _bringPreviousCardForward,
-    );
-    final right = _navArrow(
-      icon: Icons.arrow_forward_ios,
-      tooltip: 'Next card',
-      onPressed: _bringNextCardForward,
-    );
-    final up = _navArrow(
-      icon: Icons.keyboard_arrow_up,
-      tooltip: 'Previous in list',
-      onPressed: () => _shiftWindow(-1),
-    );
-    final down = _navArrow(
-      icon: Icons.keyboard_arrow_down,
-      tooltip: 'Next in list',
-      onPressed: () => _shiftWindow(1),
-    );
-
-    if (browse && window) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          up,
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              left,
-              const SizedBox(
-                width: kMinInteractiveDimension,
-                height: kMinInteractiveDimension,
-              ),
-              right,
-            ],
-          ),
-          down,
-        ],
-      );
-    }
-
-    if (window) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [up, down],
-      );
-    }
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [left, right],
     );
   }
 
@@ -428,14 +469,39 @@ class _LikedUsersScreenState extends State<LikedUsersScreen> {
     final horizontalDismiss =
         isDismissing ? kStackCardWidth * 1.4 : 0.0;
     final opacity = isDismissing ? 0.0 : (isFront ? 1.0 : 0.9);
+    final dragOffsetX =
+        isFront && _dismissingCardId == null ? _dragDx : 0.0;
+    final dragOffsetY =
+        isFront && _dismissingCardId == null ? _dragDy : 0.0;
+
+    Widget face = StackCardFace(
+      user: card.user,
+      accentColor: card.color,
+      displayName: _displayName(card),
+      interestOn: true,
+      canToggleInterest: isFront && !_isDismissing && !_isDragging,
+      onInterestPressed: () => _unlikeFrontOrCard(card),
+    );
+    if (isFront) {
+      face = Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: _onCardPointerDown,
+        onPointerMove: _onCardPointerMove,
+        onPointerUp: _onCardPointerUp,
+        onPointerCancel: _onCardPointerCancel,
+        child: face,
+      );
+    }
 
     return AnimatedPositioned(
       key: ValueKey('liked-card-${card.id}'),
-      left: baseLeft + horizontalDismiss,
-      top: baseTop,
+      left: baseLeft + horizontalDismiss + dragOffsetX,
+      top: baseTop + dragOffsetY,
       width: kStackCardWidth,
       height: kStackCardHeight,
-      duration: _animationDuration,
+      duration: _isDragging && _dismissingCardId == null
+          ? Duration.zero
+          : _animationDuration,
       curve: Curves.easeInOutCubic,
       child: KeyedSubtree(
         key: _cardKeys.putIfAbsent(card.id, () => GlobalKey()),
@@ -450,14 +516,7 @@ class _LikedUsersScreenState extends State<LikedUsersScreen> {
               duration: _animationDuration,
               curve: Curves.easeInOutCubic,
               alignment: Alignment.center,
-              child: StackCardFace(
-                user: card.user,
-                accentColor: card.color,
-                displayName: _displayName(card),
-                interestOn: true,
-                canToggleInterest: isFront && !_isDismissing,
-                onInterestPressed: () => _unlikeFrontOrCard(card),
-              ),
+              child: face,
             ),
           ),
         ),

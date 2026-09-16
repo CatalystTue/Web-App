@@ -13,15 +13,15 @@ void main() {
     location: 'Paris',
   );
 
-  testWidgets('discovery keeps know and skip buttons', (tester) async {
+  testWidgets('discovery has no know or skip buttons', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: StackedCardsScreen(users: [ada]),
       ),
     );
 
-    expect(find.text('I know this person'), findsOneWidget);
-    expect(find.text("I'm not interested"), findsOneWidget);
+    expect(find.text('I know this person'), findsNothing);
+    expect(find.text("I'm not interested"), findsNothing);
     expect(find.text('Ada'), findsOneWidget);
   });
 
@@ -43,6 +43,28 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Ada'), findsOneWidget);
-    expect(find.text('I know this person'), findsOneWidget);
+    expect(find.text('I know this person'), findsNothing);
+  });
+
+  testWidgets('down drag from the bio moves the card', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: StackedCardsScreen(users: [ada]),
+      ),
+    );
+
+    final start = tester.getTopLeft(find.byType(Card));
+    final gesture =
+        await tester.startGesture(tester.getCenter(find.text('Bio')));
+    await gesture.moveBy(const Offset(0, 120));
+    await tester.pump();
+    expect(tester.getTopLeft(find.byType(Card)).dy, closeTo(start.dy + 120, 1));
+
+    await gesture.moveBy(const Offset(0, -120));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ada'), findsOneWidget);
   });
 }

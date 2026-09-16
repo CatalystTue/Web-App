@@ -1,13 +1,12 @@
-import 'package:catalyst_flutter_app/Core/Components/buttons_widgets.dart';
 import 'package:catalyst_flutter_app/Core/Constants/config.dart';
 import 'package:catalyst_flutter_app/Core/Data/Models/stack_user_model.dart';
 import 'package:catalyst_flutter_app/Core/Data/Services/card_service.dart';
 import 'package:catalyst_flutter_app/Core/Utils/enum.dart';
 import 'package:catalyst_flutter_app/Features/stacked_cards/presentation/stack_card_face.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:gap/gap.dart';
 
 enum _DismissDirection { up, down, right }
 
@@ -413,53 +412,16 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
                 )
               : Padding(
                   padding: EdgeInsets.all(AppConfig().dimens.medium),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: Center(
-                          child: SizedBox(
-                            width: kStackCardWidth,
-                            height: kStackHeight,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              clipBehavior: Clip.none,
-                              children: _cards.map(_buildCard).toList(),
-                            ),
-                          ),
-                        ),
+                  child: Center(
+                    child: SizedBox(
+                      width: kStackCardWidth,
+                      height: kStackHeight,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        clipBehavior: Clip.none,
+                        children: _cards.map(_buildCard).toList(),
                       ),
-                      Column(
-                        children: [
-                          SizedBox(
-                            width: 280,
-                            child: CustomIconButton(
-                              title: 'I know this person',
-                              onTap: _isDismissing || _isDragging
-                                  ? null
-                                  : () => _dismissFrontCard(
-                                        _DismissDirection.up,
-                                        SwipeOutcome.know,
-                                      ),
-                              txtColor: Colors.white,
-                              color: AppConfig().colors.primaryColor,
-                            ),
-                          ),
-                          Gap(AppConfig().dimens.small),
-                          SizedBox(
-                            width: 280,
-                            child: CustomOutlineIconButton(
-                              title: "I'm not interested",
-                              onTap: _isDismissing || _isDragging
-                                  ? null
-                                  : () => _dismissFrontCard(
-                                        _DismissDirection.down,
-                                        SwipeOutcome.noInterest,
-                                      ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
                 ),
         ),
@@ -499,13 +461,18 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
       onInterestPressed: () => _showInterest(card),
     );
     if (isFront) {
-      face = Listener(
-        behavior: HitTestBehavior.translucent,
-        onPointerDown: _onCardPointerDown,
-        onPointerMove: _onCardPointerMove,
-        onPointerUp: _onCardPointerUp,
-        onPointerCancel: _onCardPointerCancel,
-        child: face,
+      face = ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(
+          dragDevices: const <PointerDeviceKind>{},
+        ),
+        child: Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: _onCardPointerDown,
+          onPointerMove: _onCardPointerMove,
+          onPointerUp: _onCardPointerUp,
+          onPointerCancel: _onCardPointerCancel,
+          child: face,
+        ),
       );
     }
 

@@ -26,7 +26,9 @@ class _AppBaseViewState extends State<AppBaseView> {
   }
 
   void _maybeShowFeedIntro(BuildContext context) {
-    if (_introScheduled || controller.isLoadingStackUsers) return;
+    if (_introScheduled || controller.isLoadingStackUsers) {
+      return;
+    }
     final seen = AppRepo().localCache.read<bool>(
               AppConfig().localCacheKeys.feedIntroSeen,
             ) ??
@@ -44,6 +46,7 @@ class _AppBaseViewState extends State<AppBaseView> {
             content: const Text(
               'We notify people when you show interest.\n\n'
               'Tap the light bulb to show interest.\n\n'
+              'Swipe right to skip, swipe left to go back.\n\n'
               'Swipe down if you’re not interested.\n\n'
               'Swipe up if you already know them. We won’t show them again.',
             ),
@@ -62,6 +65,12 @@ class _AppBaseViewState extends State<AppBaseView> {
         },
       );
     });
+  }
+
+  Future<void> _openLikedUsers() async {
+    await Get.toNamed(AppConfig().routes.likedUsers);
+    if (!mounted) return;
+    controller.fetchSavedIdeas();
   }
 
   @override
@@ -117,18 +126,14 @@ class _AppBaseViewState extends State<AppBaseView> {
                           icon: const Icon(Icons.undo),
                           color: Colors.black,
                           tooltip: 'Undo',
-                          onPressed: () =>
-                              _stackedCardsKey.currentState?.undoLastDismiss(),
+                          onPressed: () {
+                            _stackedCardsKey.currentState?.undoLastDismiss();
+                          },
                         ),
                         IconButton(
                           icon: const Icon(Icons.lightbulb_outline_rounded),
                           color: Colors.black,
-                          tooltip: 'Liked Users',
-                          onPressed: () async {
-                            await Get.toNamed(AppConfig().routes.likedUsers);
-                            await controller.fetchStackUsers();
-                            await controller.fetchSavedIdeas();
-                          },
+                          onPressed: _openLikedUsers,
                         ),
                       ],
                     ),

@@ -124,7 +124,6 @@ class InitFormScreen extends GetView<InitFormController> {
               isExpanded: true,
               menuMaxHeight: 260,
               decoration: InputDecoration(
-                labelText: 'Position / career stage',
                 hintText: 'Select your career stage',
                 filled: true,
                 fillColor: Colors.white,

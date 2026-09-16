@@ -31,5 +31,6 @@ void main() {
     );
     expect(find.text('Bullet points'), findsOneWidget);
     expect(find.text('Keywords'), findsNothing);
+    expect(find.text('Position / career stage'), findsOneWidget);
   });
 }

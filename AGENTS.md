@@ -35,6 +35,7 @@ Project skills — read the committed files; do not require a local tool copy:
 - `.cursor/skills/openspec-explore/SKILL.md`
 - `.cursor/skills/openspec-archive-change/SKILL.md`
 - `.cursor/skills/openspec-bulk-archive-change/SKILL.md`
+- `.cursor/skills/openspec-flush/SKILL.md`
 
 If a skill is absent, use the CLI (`openspec new change`, `openspec instructions`, `openspec archive`). Explore is think-only: do not implement.
 

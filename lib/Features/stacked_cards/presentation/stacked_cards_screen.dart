@@ -3,6 +3,7 @@ import 'package:catalyst_flutter_app/Core/Data/Models/stack_user_model.dart';
 import 'package:catalyst_flutter_app/Core/Data/Services/card_service.dart';
 import 'package:catalyst_flutter_app/Core/Utils/enum.dart';
 import 'package:catalyst_flutter_app/Features/stacked_cards/presentation/stack_card_face.dart';
+import 'package:catalyst_flutter_app/Features/stacked_cards/presentation/swipe_arrow_pad.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -25,8 +26,8 @@ class _StackCard {
 }
 
 class _StackSnapshot {
-  final List<_StackCard> cards;
-  final List<StackUserModel> userPool;
+  final List<_StackCard> queue;
+  final int frontIndex;
   final int nextCardId;
   final Set<int> markedCardIds;
   final Set<int> dismissedUserIds;
@@ -34,8 +35,8 @@ class _StackSnapshot {
   final StackUserModel? savedIdea;
 
   const _StackSnapshot({
-    required this.cards,
-    required this.userPool,
+    required this.queue,
+    required this.frontIndex,
     required this.nextCardId,
     required this.markedCardIds,
     required this.dismissedUserIds,
@@ -64,20 +65,21 @@ class StackedCardsScreen extends StatefulWidget {
 
 class StackedCardsScreenState extends State<StackedCardsScreen> {
   static const Duration _animationDuration = Duration(milliseconds: 500);
-  static const int _visibleCardCount = 1;
   static const double _swipeDistanceThreshold = 80;
   static const double _swipeVelocityThreshold = 800;
   static const double _dragSlop = 8;
 
-  late List<_StackCard> _cards;
-  late List<StackUserModel> _userPool;
+  late List<_StackCard> _queue;
+  int _frontIndex = 0;
   int _nextCardId = 0;
   int? _dismissingCardId;
   _DismissDirection? _dismissDirection;
   bool _isDismissing = false;
   bool _isDragging = false;
+  double _dragDx = 0;
   double _dragDy = 0;
   int? _dragPointer;
+  double _dragStartX = 0;
   double _dragStartY = 0;
   Duration _dragStartTime = Duration.zero;
   final List<_StackSnapshot> _undoHistory = [];
@@ -86,6 +88,16 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
   final FocusNode _keyboardFocusNode = FocusNode();
 
   bool get canUndo => _undoHistory.isNotEmpty && !_isDismissing;
+
+  _StackCard? get _frontCard {
+    if (_queue.isEmpty) return null;
+    final index = _frontIndex.clamp(0, _queue.length - 1);
+    return _queue[index];
+  }
+
+  bool get _canSkip => !_isDismissing && _queue.isNotEmpty;
+
+  bool get _canGoBack => !_isDismissing && _frontIndex > 0;
 
   String _displayName(_StackCard card) {
     return card.user.name.isNotEmpty ? card.user.name : 'Card ${card.id + 1}';
@@ -108,8 +120,11 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     }
     if (!mounted) return;
     setState(() {
-      _cards = List<_StackCard>.from(snapshot.cards);
-      _userPool = List<StackUserModel>.from(snapshot.userPool);
+      _queue = List<_StackCard>.from(snapshot.queue);
+      _frontIndex = snapshot.frontIndex.clamp(
+        0,
+        _queue.isEmpty ? 0 : _queue.length - 1,
+      );
       _nextCardId = snapshot.nextCardId;
       _markedCardIds
         ..clear()
@@ -122,7 +137,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
   }
 
   void _showInterest(_StackCard card) {
-    if (_isDismissing || _cards.isEmpty) return;
+    if (_isDismissing || _queue.isEmpty) return;
     _markedCardIds.add(card.id);
     _dismissCard(_DismissDirection.right, card, SwipeOutcome.interest);
   }
@@ -149,9 +164,12 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
   }
 
   void _resetFromUsers(List<StackUserModel> users) {
-    _userPool = List<StackUserModel>.from(users);
     _nextCardId = 0;
-    _cards = _buildInitialCards();
+    _queue = [
+      for (var i = 0; i < users.length; i++)
+        _stackCardFromUser(user: users[i], initStackPos: i),
+    ];
+    _frontIndex = 0;
     _markedCardIds.clear();
     _dismissedUserIds.clear();
     _undoHistory.clear();
@@ -163,25 +181,30 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
 
   void _resetDrag() {
     _isDragging = false;
+    _dragDx = 0;
     _dragDy = 0;
     _dragPointer = null;
+    _dragStartX = 0;
     _dragStartY = 0;
     _dragStartTime = Duration.zero;
   }
 
   void _onCardPointerDown(PointerDownEvent event) {
-    if (_isDismissing || _cards.isEmpty || _dragPointer != null) return;
+    if (_isDismissing || _queue.isEmpty || _dragPointer != null) return;
     _dragPointer = event.pointer;
+    _dragStartX = event.position.dx;
     _dragStartY = event.position.dy;
     _dragStartTime = event.timeStamp;
   }
 
   void _onCardPointerMove(PointerMoveEvent event) {
     if (event.pointer != _dragPointer || _isDismissing) return;
+    final dx = event.position.dx - _dragStartX;
     final dy = event.position.dy - _dragStartY;
-    if (!_isDragging && dy.abs() < _dragSlop) return;
+    if (!_isDragging && dx.abs() < _dragSlop && dy.abs() < _dragSlop) return;
     setState(() {
       _isDragging = true;
+      _dragDx = dx;
       _dragDy = dy;
     });
   }
@@ -192,8 +215,9 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     if (_isDismissing || !_isDragging) return;
     final elapsedSeconds =
         (event.timeStamp - _dragStartTime).inMicroseconds / 1e6;
-    final velocity = elapsedSeconds > 0 ? _dragDy / elapsedSeconds : 0.0;
-    _finishVerticalDrag(velocity);
+    final vx = elapsedSeconds > 0 ? _dragDx / elapsedSeconds : 0.0;
+    final vy = elapsedSeconds > 0 ? _dragDy / elapsedSeconds : 0.0;
+    _finishDrag(vx, vy);
   }
 
   void _onCardPointerCancel(PointerCancelEvent event) {
@@ -203,27 +227,53 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     setState(_resetDrag);
   }
 
-  void _finishVerticalDrag(double velocity) {
-    final flungKnow = velocity <= -_swipeVelocityThreshold;
-    final flungSkip = velocity >= _swipeVelocityThreshold;
-    final draggedKnow = _dragDy <= -_swipeDistanceThreshold;
-    final draggedSkip = _dragDy >= _swipeDistanceThreshold;
-    final shouldKnow = flungKnow || (draggedKnow && !flungSkip);
-    final shouldSkip = flungSkip || (draggedSkip && !flungKnow);
+  void _finishDrag(double vx, double vy) {
+    final flungLeft = vx <= -_swipeVelocityThreshold;
+    final flungRight = vx >= _swipeVelocityThreshold;
+    final flungUp = vy <= -_swipeVelocityThreshold;
+    final flungDown = vy >= _swipeVelocityThreshold;
+    final draggedLeft = _dragDx <= -_swipeDistanceThreshold;
+    final draggedRight = _dragDx >= _swipeDistanceThreshold;
+    final draggedUp = _dragDy <= -_swipeDistanceThreshold;
+    final draggedDown = _dragDy >= _swipeDistanceThreshold;
 
-    if (shouldKnow && !shouldSkip) {
-      setState(() {
-        _isDragging = false;
-      });
-      _dismissFrontCard(_DismissDirection.up, SwipeOutcome.know);
-      return;
-    }
-    if (shouldSkip && !shouldKnow) {
-      setState(() {
-        _isDragging = false;
-      });
-      _dismissFrontCard(_DismissDirection.down, SwipeOutcome.noInterest);
-      return;
+    final shouldLeft = flungLeft || (draggedLeft && !flungRight);
+    final shouldRight = flungRight || (draggedRight && !flungLeft);
+    final shouldUp = flungUp || (draggedUp && !flungDown);
+    final shouldDown = flungDown || (draggedDown && !flungUp);
+
+    final velocityDominant = vx.abs() >= _swipeVelocityThreshold ||
+        vy.abs() >= _swipeVelocityThreshold;
+    final useHorizontal = velocityDominant
+        ? vx.abs() >= vy.abs()
+        : _dragDx.abs() >= _dragDy.abs();
+
+    if (useHorizontal) {
+      if (shouldLeft && !shouldRight) {
+        setState(_resetDrag);
+        _goBack();
+        return;
+      }
+      if (shouldRight && !shouldLeft) {
+        setState(_resetDrag);
+        _skip();
+        return;
+      }
+    } else {
+      if (shouldUp && !shouldDown) {
+        setState(() {
+          _isDragging = false;
+        });
+        _dismissFrontCard(_DismissDirection.up, SwipeOutcome.know);
+        return;
+      }
+      if (shouldDown && !shouldUp) {
+        setState(() {
+          _isDragging = false;
+        });
+        _dismissFrontCard(_DismissDirection.down, SwipeOutcome.noInterest);
+        return;
+      }
     }
     setState(_resetDrag);
   }
@@ -232,23 +282,6 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
   void dispose() {
     _keyboardFocusNode.dispose();
     super.dispose();
-  }
-
-  List<_StackCard> _buildInitialCards() {
-    final takeCount = _userPool.length < _visibleCardCount
-        ? _userPool.length
-        : _visibleCardCount;
-    final initialUsers = _userPool.take(takeCount).toList();
-    _userPool =
-        _userPool.length == takeCount ? [] : _userPool.sublist(takeCount);
-
-    return List.generate(
-      initialUsers.length,
-      (index) => _stackCardFromUser(
-        user: initialUsers[index],
-        initStackPos: index,
-      ),
-    );
   }
 
   _StackCard _stackCardFromUser({
@@ -264,17 +297,70 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     );
   }
 
-  StackUserModel? _nextUserFromPool() {
-    if (_userPool.isEmpty) return null;
-    return _userPool.removeAt(0);
+  List<int> _excludeIds({int? extraId}) {
+    return {
+      ..._queue.map((card) => card.user.id),
+      ..._dismissedUserIds,
+      if (extraId != null) extraId,
+    }.where((id) => id > 0).toList();
+  }
+
+  Future<void> _skip() async {
+    if (_isDismissing || _queue.isEmpty) return;
+    if (_frontIndex < _queue.length - 1) {
+      setState(() {
+        _frontIndex++;
+        _resetDrag();
+      });
+      return;
+    }
+
+    setState(() {
+      _isDismissing = true;
+    });
+    final next = await CardsService().getReplacementUser(
+      remainingUserIds: _excludeIds(),
+      dismissedUserId: _frontCard?.user.id ?? 0,
+    );
+    if (!mounted) return;
+    if (next == null) {
+      setState(() {
+        _isDismissing = false;
+        _resetDrag();
+      });
+      return;
+    }
+    setState(() {
+      _queue.add(_stackCardFromUser(user: next, initStackPos: _queue.length));
+      _frontIndex = _queue.length - 1;
+      _isDismissing = false;
+      _resetDrag();
+    });
+  }
+
+  void _goBack() {
+    if (_isDismissing || _frontIndex <= 0) return;
+    setState(() {
+      _frontIndex--;
+      _resetDrag();
+    });
+  }
+
+  void _notInterested() {
+    _dismissFrontCard(_DismissDirection.down, SwipeOutcome.noInterest);
+  }
+
+  void _know() {
+    _dismissFrontCard(_DismissDirection.up, SwipeOutcome.know);
   }
 
   Future<void> _dismissFrontCard(
     _DismissDirection direction,
     SwipeOutcome outcome,
   ) async {
-    if (_isDismissing || _cards.isEmpty) return;
-    await _dismissCard(direction, _cards.first, outcome);
+    final card = _frontCard;
+    if (_isDismissing || card == null) return;
+    await _dismissCard(direction, card, outcome);
   }
 
   Future<void> _dismissCard(
@@ -282,18 +368,15 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     _StackCard card,
     SwipeOutcome outcome,
   ) async {
-    if (_isDismissing || _cards.isEmpty) return;
+    if (_isDismissing || _queue.isEmpty) return;
 
     final dismissedUserId = card.user.id;
+    final snapshotQueue = List<_StackCard>.from(_queue);
+    final snapshotIndex = _frontIndex;
     final snapshotDismissedUserIds = Set<int>.from(_dismissedUserIds);
     if (dismissedUserId > 0) {
       _dismissedUserIds.add(dismissedUserId);
     }
-
-    final remainingUserIds = <int>{
-      ..._cards.where((item) => item.id != card.id).map((item) => item.user.id),
-      ..._dismissedUserIds,
-    }.where((id) => id > 0).toList();
 
     setState(() {
       _isDismissing = true;
@@ -320,14 +403,20 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
 
     widget.onUserActed?.call();
 
+    final remainingAfter = snapshotQueue
+        .where((item) => item.id != card.id)
+        .map((item) => item.user.id)
+        .where((id) => id > 0)
+        .toList();
     final replacementFuture = CardsService().getReplacementUser(
-      remainingUserIds: remainingUserIds,
+      remainingUserIds: [...remainingAfter, ..._dismissedUserIds],
       dismissedUserId: dismissedUserId,
     );
 
     setState(() {
       _dismissingCardId = card.id;
       _dismissDirection = direction;
+      _dragDx = 0;
       _dragDy = 0;
       _isDragging = false;
     });
@@ -341,8 +430,8 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
         outcome == SwipeOutcome.interest && _markedCardIds.contains(card.id);
     setState(() {
       _undoHistory.add(_StackSnapshot(
-        cards: List<_StackCard>.from(_cards),
-        userPool: List<StackUserModel>.from(_userPool),
+        queue: snapshotQueue,
+        frontIndex: snapshotIndex,
         nextCardId: _nextCardId,
         markedCardIds: Set<int>.from(_markedCardIds)..remove(card.id),
         dismissedUserIds: snapshotDismissedUserIds,
@@ -353,6 +442,7 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
       _dismissingCardId = null;
       _dismissDirection = null;
       _isDismissing = false;
+      _resetDrag();
     });
     if (wasInterested) widget.onCardHearted?.call(card.user);
   }
@@ -362,44 +452,60 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
     StackUserModel? replacement,
   ) {
     _markedCardIds.remove(dismissed.id);
-    _cards = _cards.where((card) => card.id != dismissed.id).toList();
-
-    final nextUser = replacement ?? _nextUserFromPool();
-    if (nextUser != null) {
-      final replacementCard = _stackCardFromUser(
-        user: nextUser,
-        initStackPos: 0,
-      );
-      _cards.add(replacementCard);
+    final removedIndex = _queue.indexWhere((card) => card.id == dismissed.id);
+    if (removedIndex >= 0) {
+      _queue = List<_StackCard>.from(_queue)..removeAt(removedIndex);
     }
+    if (replacement != null &&
+        !_queue.any(
+            (card) => card.user.id == replacement.id && replacement.id > 0)) {
+      _queue.add(
+        _stackCardFromUser(user: replacement, initStackPos: _queue.length),
+      );
+    }
+    if (_queue.isEmpty) {
+      _frontIndex = 0;
+    } else if (removedIndex >= _queue.length) {
+      _frontIndex = _queue.length - 1;
+    } else if (removedIndex >= 0) {
+      _frontIndex = removedIndex;
+    }
+  }
+
+  KeyEventResult _onArrowKeyEvent(FocusNode node, KeyEvent event) {
+    final isArrow = event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+        event.logicalKey == LogicalKeyboardKey.arrowRight ||
+        event.logicalKey == LogicalKeyboardKey.arrowUp ||
+        event.logicalKey == LogicalKeyboardKey.arrowDown;
+    if (!isArrow) return KeyEventResult.ignored;
+    if (event is! KeyDownEvent) return KeyEventResult.handled;
+    if (_isDismissing || _isDragging || _queue.isEmpty) {
+      return KeyEventResult.handled;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      _goBack();
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      _skip();
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _know();
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _notInterested();
+    }
+    return KeyEventResult.handled;
   }
 
   @override
   Widget build(BuildContext context) {
+    final card = _frontCard;
     return Scaffold(
       backgroundColor: AppConfig().colors.backGroundColor,
-      body: KeyboardListener(
+      body: Focus(
         focusNode: _keyboardFocusNode,
         autofocus: true,
-        onKeyEvent: (event) {
-          if (event is! KeyDownEvent ||
-              _isDismissing ||
-              _isDragging ||
-              _cards.isEmpty) {
-            return;
-          }
-
-          if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-            _dismissFrontCard(_DismissDirection.up, SwipeOutcome.know);
-          } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-            _dismissFrontCard(
-              _DismissDirection.down,
-              SwipeOutcome.noInterest,
-            );
-          }
-        },
+        onKeyEvent: _onArrowKeyEvent,
         child: SafeArea(
-          child: _cards.isEmpty
+          child: card == null
               ? Center(
                   child: Text(
                     'No more users in queue. Check again later.',
@@ -412,16 +518,35 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
                 )
               : Padding(
                   padding: EdgeInsets.all(AppConfig().dimens.medium),
-                  child: Center(
-                    child: SizedBox(
-                      width: kStackCardWidth,
-                      height: kStackHeight,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        clipBehavior: Clip.none,
-                        children: _cards.map(_buildCard).toList(),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child: SizedBox(
+                            width: kStackCardWidth,
+                            height: kStackHeight,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              clipBehavior: Clip.none,
+                              children: [_buildCard(card)],
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      ExcludeFocus(
+                        child: Center(
+                          child: SwipeArrowPad(
+                            enabled: !_isDismissing && !_isDragging,
+                            canSkip: _canSkip,
+                            canGoBack: _canGoBack,
+                            onSkip: _skip,
+                            onGoBack: _goBack,
+                            onKnow: _know,
+                            onNotInterested: _notInterested,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
         ),
@@ -431,10 +556,10 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
 
   Widget _buildCard(_StackCard card) {
     final isDismissing = card.id == _dismissingCardId;
-    final isFront = _cards.isNotEmpty && card.id == _cards.first.id;
     const baseLeft = 0.0;
     const baseTop = (kStackHeight - kStackCardHeight) / 2;
-    final dragOffset = isFront && _dismissingCardId == null ? _dragDy : 0.0;
+    final dragOffsetX = _dismissingCardId == null ? _dragDx : 0.0;
+    final dragOffsetY = _dismissingCardId == null ? _dragDy : 0.0;
 
     final horizontalDismiss =
         isDismissing && _dismissDirection == _DismissDirection.right
@@ -460,26 +585,24 @@ class StackedCardsScreenState extends State<StackedCardsScreen> {
       canToggleInterest: !_isDismissing && !_isDragging,
       onInterestPressed: () => _showInterest(card),
     );
-    if (isFront) {
-      face = ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context).copyWith(
-          dragDevices: const <PointerDeviceKind>{},
-        ),
-        child: Listener(
-          behavior: HitTestBehavior.translucent,
-          onPointerDown: _onCardPointerDown,
-          onPointerMove: _onCardPointerMove,
-          onPointerUp: _onCardPointerUp,
-          onPointerCancel: _onCardPointerCancel,
-          child: face,
-        ),
-      );
-    }
+    face = ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(
+        dragDevices: const <PointerDeviceKind>{},
+      ),
+      child: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: _onCardPointerDown,
+        onPointerMove: _onCardPointerMove,
+        onPointerUp: _onCardPointerUp,
+        onPointerCancel: _onCardPointerCancel,
+        child: face,
+      ),
+    );
 
     return AnimatedPositioned(
       key: ValueKey('card-${card.id}'),
-      left: baseLeft + horizontalDismiss,
-      top: baseTop + verticalDismiss + dragOffset,
+      left: baseLeft + horizontalDismiss + dragOffsetX,
+      top: baseTop + verticalDismiss + dragOffsetY,
       width: kStackCardWidth,
       height: kStackCardHeight,
       duration: _isDragging && _dismissingCardId == null

@@ -6,15 +6,33 @@ Current behavior is specified in [`openspec/specs/`](openspec/specs/). `[PRE]` o
 
 ## Getting Started
 
-The API URL is set at compile time via `--dart-define=API_BASE_URL=...` (`lib/Core/Constants/config.dart`). If omitted, it defaults to `https://server.catalyst-app.org/api`.
+Operator knobs live in committed `assets/.env` (loaded at startup from `lib/Core/Constants/config.dart`):
 
-Run locally against a local backend (start the backend first, typically `http://127.0.0.1:8000`):
+```
+API_BASE_URL=https://server.catalyst-app.org/api
+FEEDBACK_FORM_URL=https://catalyst-app.org/?page_id=339
+FEEDBACK_SWIPE_THRESHOLD=100
+```
+
+Edit the file and rebuild. Missing keys use those same defaults. `--dart-define=API_BASE_URL=...` still overrides the file so local run does not require a git change.
+
+Run locally against a local backend (start the backend first, typically `http://127.0.0.1:8000`). Omit `--dart-define=API_BASE_URL` to use `assets/.env`.
+
+Chrome (opens a real browser):
 
 ```bash
 flutter run -d chrome --dart-define=API_BASE_URL=http://127.0.0.1:8000/api
 ```
 
-Build the web app (production API unless you pass `--dart-define`):
+Cursor Simple Browser (or any other client): serve without launching Chrome, then open the printed URL (`Cmd+Shift+P` → **Simple Browser: Show**):
+
+```bash
+flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8080 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api
+```
+
+One `flutter run` can be opened in Chrome and Cursor at the same time. Those browsers keep separate GetStorage sessions (you can log in as two users). Two tabs in the same browser share one session. Use a second `flutter run` with a different `--web-port` only if you need two builds or API targets.
+
+Build the web app (uses `assets/.env` unless you pass `--dart-define=API_BASE_URL`):
 
 ```bash
 flutter build web --release
@@ -54,4 +72,4 @@ Named routes in `lib/Core/Constants/route.dart`. On web they are hash URLs (`/#/
 | [matching-stack](openspec/specs/matching-stack/spec.md) | Home card, likes, undo, liked-users page |
 | [digest](openspec/specs/digest/spec.md) | Logged-out digest mail landing |
 | [profile-and-settings](openspec/specs/profile-and-settings/spec.md) | My Card, settings, logout, delete account, legal docs |
-| [admin-console](openspec/specs/admin-console/spec.md) | Admin login, mailing templates, assets, restrictions, SQL viewer |
+| [admin-console](openspec/specs/admin-console/spec.md) | Admin login, mailing templates, restrictions, SQL viewer |

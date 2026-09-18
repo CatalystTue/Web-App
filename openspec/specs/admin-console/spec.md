@@ -48,7 +48,7 @@ The system SHALL require an admin JWT for the console so members cannot use it.
 
 #### Scenario: Console chrome
 - **WHEN** the console is shown
-- **THEN** the title SHALL be `Admin Welcome` and the sidebar SHALL list Mailing List, Assets, Registration Restrictions, User Links, and SQL Tables
+- **THEN** the title SHALL be `Admin Welcome` and the sidebar SHALL list Mailing List, Mail Plans, Registration Restrictions, User Links, and SQL Tables
 
 #### Scenario: Default panel
 - **WHEN** the console first loads
@@ -306,106 +306,58 @@ The system SHALL let an administrator send remaining intro mail from the User Li
 - **WHEN** send fails
 - **THEN** the system SHALL snackbar `Failed to send intro mail.`
 
-### Requirement: Admin can list assets
+### Requirement: Admin can load and save mail plans
 
-When Assets is selected, the system SHALL GET `/admin/assets` and list the returned file names.
+When Mail Plans is selected, the system SHALL GET `/admin/mail/digest` and GET `/admin/mail/intro` and show two sections: Interest digest and Intro mail. Digest SHALL include enabled, frequency of daily / weekly / biweekly / monthly, and a date calendar for `next_at`. Digest SHALL NOT include a time picker. Digest save SHALL PUT `/admin/mail/digest` with `{ "enabled", "repeat", "next_at" }` where `next_at` is the selected calendar date (UTC noon ISO-8601 with `Z`); the server stamps send time. Intro SHALL include enabled, a date calendar for `next_at`, Save, and Send now, and SHALL NOT include a time picker or a repeat control. Intro save SHALL PUT `/admin/mail/intro` with `{ "enabled", "next_at" }` and SHALL NOT send `repeat`; when intro is disabled, `next_at` MAY be null. Send now SHALL confirm in a Yes/No dialog then POST `/admin/links/send` and snackbar the returned `sent` count. The Mail Plans panel SHALL NOT call a digest send-now path. When a plan is enabled and the selected date is before today, the system SHALL NOT PUT that plan.
 
-#### Scenario: Load Assets
-- **WHEN** Assets is selected
-- **THEN** the system SHALL GET `/admin/assets` and show the names
+#### Scenario: Load Mail Plans
+- **WHEN** Mail Plans is selected
+- **THEN** the system SHALL GET `/admin/mail/digest` and GET `/admin/mail/intro` and show Interest digest and Intro mail
 
-#### Scenario: List failure
-- **WHEN** that list fails
-- **THEN** the system SHALL show `Could not load assets.`
+#### Scenario: Digest load failure
+- **WHEN** the digest GET fails
+- **THEN** the system SHALL show `Could not load digest plan.`
 
-#### Scenario: Empty list
-- **WHEN** the list is empty
-- **THEN** the system SHALL show `No assets found.`
+#### Scenario: Intro load failure
+- **WHEN** the intro GET fails
+- **THEN** the system SHALL show `Could not load intro plan.`
 
-### Requirement: Admin can add an asset
+#### Scenario: Save digest
+- **WHEN** digest Save is used with enabled, a valid frequency, and a date that is today or later
+- **THEN** the system SHALL PUT `/admin/mail/digest` with `{ "enabled", "repeat", "next_at" }`
 
-The system SHALL let an administrator upload a file. Upload SHALL PUT `/admin/assets/{name}` as multipart field `file`. The name SHALL be a single path segment: not empty, not `.` or `..`, not starting with `.`, and with no `/` or `\`. Invalid names SHALL snackbar `Invalid asset name.` and SHALL NOT PUT.
+#### Scenario: Digest save success
+- **WHEN** digest save succeeds
+- **THEN** the system SHALL snackbar `Digest plan saved.`
 
-#### Scenario: Add asset
-- **WHEN** a file is chosen with a valid name
-- **THEN** the system SHALL PUT `/admin/assets/{name}` with that file as `file`
+#### Scenario: Save intro
+- **WHEN** intro Save is used with enabled and a date that is today or later
+- **THEN** the system SHALL PUT `/admin/mail/intro` with `{ "enabled", "next_at" }` and SHALL NOT include `repeat`
 
-#### Scenario: Add success
-- **WHEN** create or replace succeeds
-- **THEN** the system SHALL reload the list, select that name when present, and snackbar `Asset "{name}" saved.`
+#### Scenario: Intro save success
+- **WHEN** intro save succeeds
+- **THEN** the system SHALL snackbar `Intro plan saved.` and reload the intro plan
 
-#### Scenario: Add failure
-- **WHEN** upload fails
-- **THEN** the system SHALL snackbar `Failed to save asset.`
+#### Scenario: Enabled date before today
+- **WHEN** Save is used on an enabled plan whose date is before today
+- **THEN** the system SHALL NOT PUT that plan
 
-#### Scenario: Invalid add name
-- **WHEN** the name is empty, `.`, `..`, starts with `.`, or contains `/` or `\`
-- **THEN** the system SHALL snackbar `Invalid asset name.` and SHALL NOT PUT
+#### Scenario: No digest send-now
+- **WHEN** Mail Plans is shown
+- **THEN** the system SHALL NOT offer a digest send-now action and SHALL NOT request `/admin/mail/digest/send`
 
-### Requirement: Admin can preview and copy an asset name
+#### Scenario: Intro send now
+- **WHEN** Send now is used and confirmed
+- **THEN** the system SHALL POST `/admin/links/send` and snackbar `Sent N intro mail(s).` or `Failed to send intro mail.`
 
-When a listed asset is selected, the system SHALL GET `/admin/assets/{name}` as bytes (admin JWT). Image bytes SHALL preview. Copy name SHALL put the filename on the clipboard so it can be pasted into mailing HTML.
+### Requirement: Mail HTML preview shows the bundled lockup
 
-#### Scenario: Load asset
-- **WHEN** a name is selected
-- **THEN** the system SHALL GET `/admin/assets/{name}` as bytes
+When Preview is active, the HTML preview widget SHALL display this app's `assets/png/catalyst_logo.png` for the public mail lockup URLs `https://app.catalyst-app.org/assets/assets/png/catalyst_logo.png` and `https://app.catalyst-app.org/assets/png/catalyst_logo.png`. Other HTML SHALL stay unchanged. Stored template text SHALL keep the hotlink.
 
-#### Scenario: Image preview
-- **WHEN** the bytes are a png, jpeg, gif, or webp image
-- **THEN** the system SHALL show that image
+#### Scenario: Preview uses bundled lockup
+- **WHEN** Preview is active and the HTML includes either public lockup URL
+- **THEN** the rendered preview SHALL use `assets/png/catalyst_logo.png` from this app
 
-#### Scenario: Non-image selected
-- **WHEN** the bytes are not those image types
-- **THEN** the system SHALL show `No preview for this file.`
-
-#### Scenario: Load failure
-- **WHEN** GET fails
-- **THEN** the system SHALL show `Could not load asset.`
-
-#### Scenario: Copy name
-- **WHEN** Copy name is tapped for a selected file
-- **THEN** the system SHALL copy that filename to the clipboard and snackbar `Copied "{name}".`
-
-### Requirement: Admin can rename an asset
-
-The system SHALL let an administrator change a selected file's name. Rename SHALL PUT `/admin/assets/{newName}` with the current bytes as multipart `file`, then DELETE `/admin/assets/{oldName}` when the names differ. The new name SHALL use the same path-safety rules as add. Same name SHALL snackbar `Enter a new name.` and SHALL NOT PUT or DELETE.
-
-#### Scenario: Rename asset
-- **WHEN** a valid new name different from the current name is submitted
-- **THEN** the system SHALL PUT the bytes under the new name and DELETE the old name
-
-#### Scenario: Rename success
-- **WHEN** rename succeeds
-- **THEN** the system SHALL reload the list, select the new name when present, and snackbar `Asset renamed to "{newName}".`
-
-#### Scenario: Rename failure
-- **WHEN** PUT or DELETE fails
-- **THEN** the system SHALL snackbar `Failed to rename asset.`
-
-#### Scenario: Same name
-- **WHEN** the new name equals the current name
-- **THEN** the system SHALL snackbar `Enter a new name.` and SHALL NOT PUT or DELETE
-
-#### Scenario: Invalid rename name
-- **WHEN** the new name is empty, `.`, `..`, starts with `.`, or contains `/` or `\`
-- **THEN** the system SHALL snackbar `Invalid asset name.` and SHALL NOT PUT or DELETE
-
-### Requirement: Admin can delete an asset
-
-The system SHALL let an administrator delete a selected file after confirming `Are you sure you want to permanently remove "{name}"?`. Delete SHALL DELETE `/admin/assets/{name}`. Missing file SHALL snackbar the server detail (HTTP 404).
-
-#### Scenario: Delete asset
-- **WHEN** the administrator confirms delete for a selected name
-- **THEN** the system SHALL DELETE `/admin/assets/{name}`
-
-#### Scenario: Delete cancelled
-- **WHEN** the administrator declines the confirm dialog
-- **THEN** the system SHALL NOT DELETE
-
-#### Scenario: Delete success
-- **WHEN** delete succeeds
-- **THEN** the system SHALL reload the list and snackbar `Asset "{name}" removed.`
-
-#### Scenario: Delete failure
-- **WHEN** delete fails
-- **THEN** the system SHALL snackbar `Failed to remove asset.`
+#### Scenario: Save keeps the hotlink
+- **WHEN** the administrator saves mailing HTML that includes a public lockup URL
+- **THEN** the stored HTML SHALL still contain that URL

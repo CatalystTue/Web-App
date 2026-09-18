@@ -3,6 +3,8 @@ import 'dart:ui_web' as ui_web;
 
 import 'package:flutter/widgets.dart';
 
+import 'html_preview_lockup.dart';
+
 Widget createHtmlPreview(String htmlContent, {Key? key}) {
   return _HtmlPreviewWeb(
     key: key,
@@ -25,6 +27,7 @@ class _HtmlPreviewWeb extends StatefulWidget {
 class _HtmlPreviewWebState extends State<_HtmlPreviewWeb> {
   late final String _viewType;
   late final html.IFrameElement _iframe;
+  int _loadId = 0;
 
   @override
   void initState() {
@@ -33,20 +36,27 @@ class _HtmlPreviewWebState extends State<_HtmlPreviewWeb> {
     _iframe = html.IFrameElement()
       ..style.border = '0'
       ..style.width = '100%'
-      ..style.height = '100%'
-      ..srcdoc = widget.htmlContent;
+      ..style.height = '100%';
 
     ui_web.platformViewRegistry.registerViewFactory(_viewType, (int viewId) {
       return _iframe;
     });
+    _setHtml(widget.htmlContent);
   }
 
   @override
   void didUpdateWidget(covariant _HtmlPreviewWeb oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.htmlContent != widget.htmlContent) {
-      _iframe.srcdoc = widget.htmlContent;
+      _setHtml(widget.htmlContent);
     }
+  }
+
+  Future<void> _setHtml(String htmlContent) async {
+    final id = ++_loadId;
+    final srcdoc = await htmlPreviewSrcdoc(htmlContent);
+    if (!mounted || id != _loadId) return;
+    _iframe.srcdoc = srcdoc;
   }
 
   @override

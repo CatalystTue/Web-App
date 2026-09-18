@@ -110,6 +110,7 @@
 //   }
 // }
 import 'package:catalyst_flutter_app/Core/constants/config.dart';
+import 'package:catalyst_flutter_app/Core/Utils/external_links.dart';
 import 'package:catalyst_flutter_app/Core/Utils/legal_documents.dart';
 import 'package:catalyst_flutter_app/Features/app_settings/presentation/controller/app_settings_controller.dart';
 import 'package:catalyst_flutter_app/Features/app_settings/presentation/widgets/setting_container_widget.dart';
@@ -168,6 +169,20 @@ class AppSettingsScreen extends GetView<AppSettingsController> {
               onTap: LegalDocuments.openPrivacyNotice,
               firstIcon: Icons.privacy_tip_outlined,
               text: 'Privacy Notice',
+              secondIcon: Icon(
+                Icons.arrow_forward_ios,
+                color: AppConfig().colors.primaryColor,
+              ),
+            ),
+            Divider(
+              height: 0,
+              thickness: 1.5,
+              color: Colors.grey[300],
+            ),
+            SettingContainerWidget(
+              onTap: ExternalLinks.openFeedbackForm,
+              firstIcon: Icons.feedback_outlined,
+              text: 'Feedback',
               secondIcon: Icon(
                 Icons.arrow_forward_ios,
                 color: AppConfig().colors.primaryColor,

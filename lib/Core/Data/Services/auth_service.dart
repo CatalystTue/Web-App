@@ -1,12 +1,10 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:catalyst_flutter_app/Core/Constants/config.dart';
 import 'package:catalyst_flutter_app/Core/Utils/enum.dart';
 import 'package:catalyst_flutter_app/app_repo.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
 
 import '../../../../Core/Data/Services/services_helper.dart';
 
@@ -49,9 +47,6 @@ class AuthenticationService extends ServicesHelper {
 
   String _adminTemplateUrl(String name) =>
       '$_adminURL/templates/${Uri.encodeComponent(name)}';
-
-  String _adminAssetUrl(String name) =>
-      '$_adminURL/assets/${Uri.encodeComponent(name)}';
 
   Uri _adminSqlUri({String? table, String? column}) {
     return Uri.parse('$_adminURL/sql').replace(
@@ -181,78 +176,6 @@ class AuthenticationService extends ServicesHelper {
   Future<bool> removeAdminMailingPage(String htmlName) async {
     final response = await request(
       _adminTemplateUrl(htmlName),
-      serviceType: ServiceType.delete,
-      requiredDefaultHeader: true,
-    );
-    return _adminOk(response);
-  }
-
-  Future<List<String>?> getAdminAssets() async {
-    final response = await request(
-      '$_adminURL/assets',
-      serviceType: ServiceType.get,
-      requiredDefaultHeader: true,
-    );
-    if (response == null) return null;
-    if (response is Map && response.containsKey('detail')) return null;
-    if (response is List) {
-      return response.map((item) => item?.toString() ?? '').toList();
-    }
-    return null;
-  }
-
-  Future<Uint8List?> getAdminAssetBytes(String name) async {
-    final uri = Uri.parse(_adminAssetUrl(name));
-    try {
-      final headers = <String, String>{};
-      final token = AppRepo().jwtToken?.trim();
-      if (token != null && token.isNotEmpty) {
-        headers['Authorization'] = 'Bearer $token';
-      }
-      final response = await http.get(uri, headers: headers);
-      if (await _adminHttpFailed(response.statusCode, response.body)) {
-        return null;
-      }
-      if (response.statusCode != 200) return null;
-      return response.bodyBytes;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<bool> saveAdminAsset({
-    required String name,
-    required List<int> bytes,
-  }) async {
-    final uri = Uri.parse(_adminAssetUrl(name));
-    try {
-      final request = http.MultipartRequest('PUT', uri);
-      final token = AppRepo().jwtToken?.trim();
-      if (token != null && token.isNotEmpty) {
-        request.headers['Authorization'] = 'Bearer $token';
-      }
-      request.files.add(
-        http.MultipartFile.fromBytes(
-          'file',
-          bytes,
-          filename: name,
-          contentType: MediaType('application', 'octet-stream'),
-        ),
-      );
-      final streamed = await request.send().timeout(const Duration(seconds: 30));
-      final response = await http.Response.fromStream(streamed);
-      if (await _adminHttpFailed(response.statusCode, response.body)) {
-        return false;
-      }
-      return _httpOk(response.statusCode);
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<bool> removeAdminAsset(String name) async {
-    final response = await request(
-      _adminAssetUrl(name),
       serviceType: ServiceType.delete,
       requiredDefaultHeader: true,
     );
@@ -391,6 +314,50 @@ class AuthenticationService extends ServicesHelper {
       return int.tryParse(sent.toString());
     }
     return null;
+  }
+
+  Future<Map<String, dynamic>?> getAdminDigestPlan() async {
+    final response = await request(
+      '$_adminURL/mail/digest',
+      serviceType: ServiceType.get,
+      requiredDefaultHeader: true,
+    );
+    if (response is Map<String, dynamic> && !response.containsKey('detail')) {
+      return response;
+    }
+    return null;
+  }
+
+  Future<bool> putAdminDigestPlan(Map<String, dynamic> body) async {
+    final response = await request(
+      '$_adminURL/mail/digest',
+      serviceType: ServiceType.put,
+      requiredDefaultHeader: true,
+      body: body,
+    );
+    return _adminOk(response);
+  }
+
+  Future<Map<String, dynamic>?> getAdminIntroPlan() async {
+    final response = await request(
+      '$_adminURL/mail/intro',
+      serviceType: ServiceType.get,
+      requiredDefaultHeader: true,
+    );
+    if (response is Map<String, dynamic> && !response.containsKey('detail')) {
+      return response;
+    }
+    return null;
+  }
+
+  Future<bool> putAdminIntroPlan(Map<String, dynamic> body) async {
+    final response = await request(
+      '$_adminURL/mail/intro',
+      serviceType: ServiceType.put,
+      requiredDefaultHeader: true,
+      body: body,
+    );
+    return _adminOk(response);
   }
 
   String _restrictionDomainUrl(String domain) =>

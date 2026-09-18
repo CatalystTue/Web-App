@@ -6,4 +6,6 @@ class LocalCacheKeys {
   final profileCareerStage = 'profile_career_stage';
   final profileDescription = 'profile_description';
   final feedIntroSeen = 'feedIntroSeen';
+  final discoverySwipeCount = 'discoverySwipeCount';
+  final feedbackPromptSeen = 'feedbackPromptSeen';
 }

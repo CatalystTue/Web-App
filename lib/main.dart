@@ -14,6 +14,7 @@ Future<void> main() async {
     ],
   );
 
+  await AppConfig().loadEnv();
   await AppRepo().initLocalCache();
 
   runApp(const MyApp());

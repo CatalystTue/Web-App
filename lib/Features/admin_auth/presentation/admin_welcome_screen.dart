@@ -4,11 +4,9 @@ import 'package:catalyst_flutter_app/Core/Components/html_preview_widget.dart';
 import 'package:catalyst_flutter_app/Core/Constants/config.dart';
 import 'package:catalyst_flutter_app/Core/Data/Services/auth_service.dart';
 import 'package:catalyst_flutter_app/Core/Utils/cookie_storage.dart';
-import 'package:catalyst_flutter_app/Features/admin_auth/admin_asset_name.dart';
-import 'package:catalyst_flutter_app/Features/admin_auth/presentation/admin_asset_add_button.dart';
+import 'package:catalyst_flutter_app/Features/admin_auth/admin_mail_plan.dart';
 import 'package:catalyst_flutter_app/app_repo.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 class AdminWelcomeScreen extends StatefulWidget {
@@ -20,7 +18,7 @@ class AdminWelcomeScreen extends StatefulWidget {
 
 class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
   static const int _menuMailing = 0;
-  static const int _menuAssets = 1;
+  static const int _menuMailPlans = 1;
   static const int _menuRestrictions = 2;
   static const int _menuUserLinks = 3;
   static const int _menuSql = 4;
@@ -28,16 +26,10 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
   int _selectedMenuIndex = _menuRestrictions;
   int _selectedMailingPageIndex = 0;
   int _selectedSqlTableIndex = 0;
-  int _selectedAssetIndex = 0;
   bool _loadingMailingPages = false;
   bool _loadingMailingPageHtml = false;
   bool _savingMailingPageHtml = false;
   bool _removingMailingPageHtml = false;
-  bool _loadingAssets = false;
-  bool _loadingAssetBytes = false;
-  bool _savingAsset = false;
-  bool _renamingAsset = false;
-  bool _removingAsset = false;
   bool _loadingRestrictions = false;
   bool _mutatingRestrictions = false;
   bool _loadingSqlTables = false;
@@ -46,20 +38,29 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
   bool _creatingLink = false;
   bool _deletingLink = false;
   bool _sendingLinks = false;
+  bool _loadingDigestPlan = false;
+  bool _loadingIntroPlan = false;
+  bool _savingDigestPlan = false;
+  bool _savingIntroPlan = false;
+  String? _digestPlanError;
+  String? _introPlanError;
+  bool _digestEnabled = false;
+  String _digestRepeat = 'daily';
+  DateTime _digestNextAt = DateUtils.dateOnly(DateTime.now());
+  int _digestCalendarEpoch = 0;
+  bool _introEnabled = false;
+  DateTime _introNextAt = DateUtils.dateOnly(DateTime.now());
+  int _introCalendarEpoch = 0;
   String? _mailingPagesError;
   String? _mailingPageHtmlError;
   String? _sqlTablesError;
   String? _sqlColumnsError;
   String? _sqlDataError;
   String? _restrictionsError;
-  String? _assetsError;
-  String? _assetBytesError;
   List<String> _restrictionDomains = const [];
   final _userPicker = _AdminUserPicker();
   final _otherUserPicker = _AdminUserPicker();
   List<String> _mailingPages = const [];
-  List<String> _assets = const [];
-  Uint8List? _selectedAssetBytes;
   List<String> _sqlTables = const [];
   List<String> _sqlColumns = const [];
   List<List<String>> _sqlRowsData = const [];
@@ -184,417 +185,13 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
 
     if (index == _menuMailing) {
       await _loadMailingPages();
-    } else if (index == _menuAssets) {
-      await _loadAssets();
+    } else if (index == _menuMailPlans) {
+      await _loadMailPlans();
     } else if (index == _menuRestrictions) {
       await _loadRestrictions();
     } else if (index == _menuSql) {
       await _loadSqlTables();
     }
-  }
-
-  Future<void> _loadAssets() async {
-    setState(() {
-      _loadingAssets = true;
-      _assetsError = null;
-      _selectedAssetIndex = 0;
-      _selectedAssetBytes = null;
-      _assetBytesError = null;
-    });
-
-    final names = await _authService.getAdminAssets();
-    if (!mounted) return;
-
-    if (names == null) {
-      setState(() {
-        _loadingAssets = false;
-        _assets = const [];
-        _assetsError = 'Could not load assets.';
-      });
-      return;
-    }
-
-    setState(() {
-      _loadingAssets = false;
-      _assets = names;
-    });
-  }
-
-  Future<void> _onAssetTap(int index) async {
-    if (index < 0 || index >= _assets.length) return;
-    final name = _assets[index];
-    setState(() {
-      _selectedAssetIndex = index;
-      _loadingAssetBytes = true;
-      _assetBytesError = null;
-      _selectedAssetBytes = null;
-    });
-
-    final bytes = await _authService.getAdminAssetBytes(name);
-    if (!mounted) return;
-
-    if (bytes == null) {
-      setState(() {
-        _loadingAssetBytes = false;
-        _assetBytesError = 'Could not load asset.';
-      });
-      return;
-    }
-
-    setState(() {
-      _loadingAssetBytes = false;
-      _selectedAssetBytes = bytes;
-    });
-  }
-
-  void _snack(String text) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
-  }
-
-  Future<void> _onAssetPicked(String name, Uint8List bytes) async {
-    name = name.trim();
-    if (!isValidAdminAssetName(name)) {
-      if (!mounted) return;
-      _snack('Invalid asset name.');
-      return;
-    }
-
-    setState(() => _savingAsset = true);
-    final success = await _authService.saveAdminAsset(name: name, bytes: bytes);
-    if (!mounted) return;
-    setState(() => _savingAsset = false);
-
-    if (!success) {
-      _snack('Failed to save asset.');
-      return;
-    }
-
-    await _loadAssets();
-    if (!mounted) return;
-    final newIndex = _assets.indexOf(name);
-    if (newIndex != -1) {
-      await _onAssetTap(newIndex);
-    }
-    if (!mounted) return;
-    _snack('Asset "$name" saved.');
-  }
-
-  Future<void> _copyAssetName() async {
-    if (_assets.isEmpty || _selectedAssetIndex >= _assets.length) return;
-    final name = _assets[_selectedAssetIndex];
-    await Clipboard.setData(ClipboardData(text: name));
-    if (!mounted) return;
-    _snack('Copied "$name".');
-  }
-
-  Future<void> _renameCurrentAsset() async {
-    if (_assets.isEmpty || _selectedAssetIndex >= _assets.length) return;
-    final oldName = _assets[_selectedAssetIndex];
-    final nameCtrl = TextEditingController(text: oldName);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Rename asset'),
-          content: TextField(
-            controller: nameCtrl,
-            autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'New file name',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () =>
-                  Navigator.of(dialogContext).pop(nameCtrl.text.trim()),
-              child: const Text('Rename'),
-            ),
-          ],
-        );
-      },
-    );
-    nameCtrl.dispose();
-    if (!mounted || result == null) return;
-
-    if (!isValidAdminAssetName(result)) {
-      _snack('Invalid asset name.');
-      return;
-    }
-    if (result == oldName) {
-      _snack('Enter a new name.');
-      return;
-    }
-
-    setState(() => _renamingAsset = true);
-    var bytes = _selectedAssetBytes;
-    bytes ??= await _authService.getAdminAssetBytes(oldName);
-    if (!mounted) return;
-    if (bytes == null) {
-      setState(() => _renamingAsset = false);
-      _snack('Failed to rename asset.');
-      return;
-    }
-
-    final putOk =
-        await _authService.saveAdminAsset(name: result, bytes: bytes);
-    if (!mounted) return;
-    if (!putOk) {
-      setState(() => _renamingAsset = false);
-      _snack('Failed to rename asset.');
-      return;
-    }
-
-    final deleteOk = await _authService.removeAdminAsset(oldName);
-    if (!mounted) return;
-    setState(() => _renamingAsset = false);
-    if (!deleteOk) {
-      _snack('Failed to rename asset.');
-      await _loadAssets();
-      return;
-    }
-
-    await _loadAssets();
-    if (!mounted) return;
-    final newIndex = _assets.indexOf(result);
-    if (newIndex != -1) {
-      await _onAssetTap(newIndex);
-    }
-    if (!mounted) return;
-    _snack('Asset renamed to "$result".');
-  }
-
-  Future<void> _removeCurrentAsset() async {
-    if (_assets.isEmpty || _selectedAssetIndex >= _assets.length) return;
-    final name = _assets[_selectedAssetIndex];
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Remove asset'),
-          content: Text('Are you sure you want to permanently remove "$name"?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('No'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Yes'),
-            ),
-          ],
-        );
-      },
-    );
-    if (!mounted || confirmed != true) return;
-
-    setState(() => _removingAsset = true);
-    final success = await _authService.removeAdminAsset(name);
-    if (!mounted) return;
-    setState(() => _removingAsset = false);
-
-    if (!success) {
-      _snack('Failed to remove asset.');
-      return;
-    }
-
-    await _loadAssets();
-    if (!mounted) return;
-    _snack('Asset "$name" removed.');
-  }
-
-  Widget _buildAssetsPanel() {
-    final name = CookieStorage.readAdminName() ?? 'Admin';
-    return Row(
-      children: [
-        Container(
-          width: 280,
-          decoration: BoxDecoration(
-            border: Border(
-              right: BorderSide(
-                color: AppConfig().colors.txtColor,
-                width: 0.5,
-              ),
-            ),
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 10, 10, 6),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Assets',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ),
-                    AdminAssetAddButton(
-                      enabled: !_loadingAssets && !_savingAsset,
-                      busy: _savingAsset,
-                      onPicked: _onAssetPicked,
-                      onFailed: () {
-                        if (!mounted) return;
-                        _snack('Failed to save asset.');
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: _loadingAssets
-                    ? const Center(child: CircularProgressIndicator())
-                    : _assetsError != null
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Text(
-                                _assetsError!,
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          )
-                        : _assets.isEmpty
-                            ? const Center(child: Text('No assets found.'))
-                            : ListView.builder(
-                                itemCount: _assets.length,
-                                itemBuilder: (context, index) {
-                                  return ListTile(
-                                    title: Text(_assets[index]),
-                                    selected: _selectedAssetIndex == index,
-                                    selectedTileColor: AppConfig()
-                                        .colors
-                                        .secondaryColor
-                                        .withOpacity(0.15),
-                                    onTap: () => _onAssetTap(index),
-                                  );
-                                },
-                              ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: _loadingAssetBytes
-              ? const Center(child: CircularProgressIndicator())
-              : _assetBytesError != null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                          _assetBytesError!,
-                          style: Theme.of(context).textTheme.titleMedium,
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    )
-                  : _assets.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Text(
-                              'Welcome $name',
-                              style: Theme.of(context).textTheme.headlineSmall,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        )
-                      : _selectedAssetBytes == null
-                          ? Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(24),
-                                child: Text(
-                                  'Select a file to preview.',
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            )
-                          : Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Text(
-                                    _assets[_selectedAssetIndex],
-                                    style:
-                                        Theme.of(context).textTheme.titleLarge,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Expanded(
-                                    child: Center(
-                                      child: Image.memory(
-                                        _selectedAssetBytes!,
-                                        fit: BoxFit.contain,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                          return Text(
-                                            'No preview for this file.',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleMedium,
-                                            textAlign: TextAlign.center,
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Wrap(
-                                    spacing: 12,
-                                    runSpacing: 8,
-                                    alignment: WrapAlignment.end,
-                                    children: [
-                                      OutlinedButton(
-                                        onPressed: _copyAssetName,
-                                        child: const Text('Copy name'),
-                                      ),
-                                      OutlinedButton(
-                                        onPressed: _renamingAsset ||
-                                                _removingAsset
-                                            ? null
-                                            : _renameCurrentAsset,
-                                        child: _renamingAsset
-                                            ? const SizedBox(
-                                                height: 16,
-                                                width: 16,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                ),
-                                              )
-                                            : const Text('Rename'),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed: _renamingAsset ||
-                                                _removingAsset
-                                            ? null
-                                            : _removeCurrentAsset,
-                                        child: _removingAsset
-                                            ? const SizedBox(
-                                                height: 16,
-                                                width: 16,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                ),
-                                              )
-                                            : const Text('Remove'),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-        ),
-      ],
-    );
   }
 
   int? _parseId(String value) => int.tryParse(value.trim());
@@ -1316,6 +913,285 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
     );
   }
 
+  DateTime _fallbackMailPlanNextAt() =>
+      DateTime.now().add(const Duration(hours: 1));
+
+  Future<void> _loadMailPlans() async {
+    setState(() {
+      _loadingDigestPlan = true;
+      _loadingIntroPlan = true;
+      _digestPlanError = null;
+      _introPlanError = null;
+    });
+    await Future.wait(<Future<void>>[
+      _loadDigestPlan(),
+      _loadIntroPlan(),
+    ]);
+  }
+
+  Future<void> _loadDigestPlan() async {
+    final json = await _authService.getAdminDigestPlan();
+    if (!mounted) return;
+    if (json == null) {
+      setState(() {
+        _loadingDigestPlan = false;
+        _digestPlanError = 'Could not load digest plan.';
+      });
+      return;
+    }
+    final plan = AdminMailPlan.parse(json);
+    setState(() {
+      _loadingDigestPlan = false;
+      _digestEnabled = plan.enabled;
+      _digestRepeat = normalizeDigestRepeat(plan.repeat);
+      _digestNextAt = DateUtils.dateOnly(
+        plan.nextAt ?? _fallbackMailPlanNextAt(),
+      );
+      _digestCalendarEpoch++;
+    });
+  }
+
+  Future<void> _loadIntroPlan() async {
+    final json = await _authService.getAdminIntroPlan();
+    if (!mounted) return;
+    if (json == null) {
+      setState(() {
+        _loadingIntroPlan = false;
+        _introPlanError = 'Could not load intro plan.';
+      });
+      return;
+    }
+    final plan = AdminMailPlan.parse(json);
+    setState(() {
+      _loadingIntroPlan = false;
+      _introEnabled = plan.enabled;
+      _introNextAt = DateUtils.dateOnly(
+        plan.nextAt ?? _fallbackMailPlanNextAt(),
+      );
+      _introCalendarEpoch++;
+    });
+  }
+
+  Future<void> _saveDigestPlan() async {
+    if (_digestEnabled && !canPutEnabledMailDate(_digestNextAt)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('next_at must be in the future')),
+      );
+      return;
+    }
+    setState(() {
+      _savingDigestPlan = true;
+    });
+    final ok = await _authService.putAdminDigestPlan(
+      digestPlanBody(
+        enabled: _digestEnabled,
+        repeat: _digestRepeat,
+        nextAt: _digestNextAt,
+      ),
+    );
+    if (!mounted) return;
+    setState(() {
+      _savingDigestPlan = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok ? 'Digest plan saved.' : 'Failed to save digest plan.'),
+      ),
+    );
+    if (ok) await _loadDigestPlan();
+  }
+
+  Future<void> _saveIntroPlan() async {
+    if (_introEnabled && !canPutEnabledMailDate(_introNextAt)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('next_at must be in the future')),
+      );
+      return;
+    }
+    setState(() {
+      _savingIntroPlan = true;
+    });
+    final ok = await _authService.putAdminIntroPlan(
+      introPlanBody(
+        enabled: _introEnabled,
+        nextAt: _introEnabled ? _introNextAt : null,
+      ),
+    );
+    if (!mounted) return;
+    setState(() {
+      _savingIntroPlan = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok ? 'Intro plan saved.' : 'Failed to save intro plan.'),
+      ),
+    );
+    if (ok) await _loadIntroPlan();
+  }
+
+  Widget _buildMailPlanCalendar({
+    required int epoch,
+    required DateTime selected,
+    required ValueChanged<DateTime> onDateChanged,
+  }) {
+    final today = DateUtils.dateOnly(DateTime.now());
+    final selectedDay = DateUtils.dateOnly(selected);
+    final first = selectedDay.isBefore(today) ? selectedDay : today;
+    var last = DateTime(today.year + 5, today.month, today.day);
+    if (selectedDay.isAfter(last)) last = selectedDay;
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: AppConfig().colors.lightGrayColor,
+          width: 0.5,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: SizedBox(
+        height: 320,
+        child: CalendarDatePicker(
+          key: ValueKey(epoch),
+          initialDate: selectedDay,
+          firstDate: first,
+          lastDate: last,
+          onDateChanged: onDateChanged,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMailPlansPanel() {
+    final theme = Theme.of(context);
+    final loading = _loadingDigestPlan || _loadingIntroPlan;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Mail Plans', style: theme.textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(
+            'Send time is fixed on the server. Digest repeats from the chosen '
+            'date. Intro fires once on that date then turns off. Send now mails '
+            'remaining intros immediately.',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 24),
+          if (loading)
+            const Center(child: CircularProgressIndicator())
+          else ...[
+            Text('Interest digest', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            if (_digestPlanError != null)
+              Text(_digestPlanError!, style: theme.textTheme.titleMedium)
+            else ...[
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Enabled'),
+                value: _digestEnabled,
+                onChanged: _savingDigestPlan
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _digestEnabled = value;
+                        });
+                      },
+              ),
+              DropdownButtonFormField<String>(
+                value: _digestRepeat,
+                decoration: const InputDecoration(
+                  labelText: 'Frequency',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'daily', child: Text('Daily')),
+                  DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
+                  DropdownMenuItem(value: 'biweekly', child: Text('Biweekly')),
+                  DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
+                ],
+                onChanged: _savingDigestPlan
+                    ? null
+                    : (value) {
+                        if (value == null) return;
+                        setState(() {
+                          _digestRepeat = value;
+                        });
+                      },
+              ),
+              const SizedBox(height: 16),
+              Text('Next at', style: theme.textTheme.titleSmall),
+              const SizedBox(height: 8),
+              _buildMailPlanCalendar(
+                epoch: _digestCalendarEpoch,
+                selected: _digestNextAt,
+                onDateChanged: (date) {
+                  setState(() {
+                    _digestNextAt = DateUtils.dateOnly(date);
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton(
+                  onPressed: _savingDigestPlan ? null : _saveDigestPlan,
+                  child: _busyButtonChild(_savingDigestPlan, 'Save'),
+                ),
+              ),
+            ],
+            const SizedBox(height: 32),
+            Text('Intro mail', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            if (_introPlanError != null)
+              Text(_introPlanError!, style: theme.textTheme.titleMedium)
+            else ...[
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Enabled'),
+                value: _introEnabled,
+                onChanged: _savingIntroPlan
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _introEnabled = value;
+                        });
+                      },
+              ),
+              Text('Next at', style: theme.textTheme.titleSmall),
+              const SizedBox(height: 8),
+              _buildMailPlanCalendar(
+                epoch: _introCalendarEpoch,
+                selected: _introNextAt,
+                onDateChanged: (date) {
+                  setState(() {
+                    _introNextAt = DateUtils.dateOnly(date);
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  OutlinedButton(
+                    onPressed: _sendingLinks || _savingIntroPlan
+                        ? null
+                        : _sendLinks,
+                    child: _busyButtonChild(_sendingLinks, 'Send now'),
+                  ),
+                  const Spacer(),
+                  ElevatedButton(
+                    onPressed: _savingIntroPlan ? null : _saveIntroPlan,
+                    child: _busyButtonChild(_savingIntroPlan, 'Save'),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildRestrictionsPanel() {
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -1667,7 +1543,7 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
     final name = CookieStorage.readAdminName() ?? 'Admin';
     final menuItems = const [
       'Mailing List',
-      'Assets',
+      'Mail Plans',
       'Registration Restrictions',
       'User Links',
       'SQL Tables',
@@ -2044,8 +1920,8 @@ class _AdminWelcomeScreenState extends State<AdminWelcomeScreen> {
                       ),
                     ],
                   )
-                : _selectedMenuIndex == _menuAssets
-                    ? _buildAssetsPanel()
+                : _selectedMenuIndex == _menuMailPlans
+                    ? _buildMailPlansPanel()
                     : _selectedMenuIndex == _menuSql
                     ? Row(
                         children: [

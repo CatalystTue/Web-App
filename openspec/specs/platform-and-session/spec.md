@@ -193,3 +193,27 @@ The system SHALL record unused modules so later specs do not treat them as live 
 #### Scenario: Direct stacked-cards route
 - **WHEN** a user opens `/stacked-cards` directly
 - **THEN** the screen SHALL render with no users because the route constructs `StackedCardsScreen(users: [])`
+
+### Requirement: Frontend env file
+
+The system SHALL load committed `assets/.env` at startup so operators can change the API host, feedback form URL, and feedback swipe threshold without a code edit. Missing keys or a missing file SHALL use these defaults: `API_BASE_URL` `https://server.catalyst-app.org/api`, `FEEDBACK_FORM_URL` `https://catalyst-app.org/?page_id=339`, `FEEDBACK_SWIPE_THRESHOLD` `100`. When `--dart-define=API_BASE_URL` is a non-empty value, that value SHALL override the file for the API host.
+
+#### Scenario: Env loaded at startup
+- **WHEN** the app starts
+- **THEN** the system SHALL load `assets/.env` before showing the first route
+
+#### Scenario: Default env values
+- **WHEN** `assets/.env` is missing a key or the file cannot be read
+- **THEN** the system SHALL use `https://server.catalyst-app.org/api` for the API host, `https://catalyst-app.org/?page_id=339` for the feedback form URL, and `100` for the feedback swipe threshold
+
+#### Scenario: File override
+- **WHEN** `assets/.env` sets `API_BASE_URL`, `FEEDBACK_FORM_URL`, or `FEEDBACK_SWIPE_THRESHOLD`
+- **THEN** the system SHALL use those values
+
+#### Scenario: Dart-define API override
+- **WHEN** `API_BASE_URL` is passed via `--dart-define` as a non-empty value
+- **THEN** the system SHALL use that value as the API base URL even if `assets/.env` sets a different host
+
+#### Scenario: Local backend default
+- **WHEN** a local backend is used
+- **THEN** the documented default local URL SHALL be `http://127.0.0.1:8000/api`

@@ -113,3 +113,15 @@ The system SHALL let a member permanently delete their account after confirming 
 #### Scenario: Delete failure
 - **WHEN** delete fails AND an access token is still present
 - **THEN** the system SHALL show `Could not delete your account. Please try again.`
+
+### Requirement: Feedback from settings
+
+The system SHALL let a member open the public feedback form from settings.
+
+#### Scenario: Settings shows Feedback
+- **WHEN** settings opens
+- **THEN** the system SHALL show a Feedback row with Profile, Terms of Use, Privacy Notice, Delete Account, and Logout
+
+#### Scenario: Open feedback form
+- **WHEN** Feedback is tapped
+- **THEN** the system SHALL open the configured feedback form URL in a new tab

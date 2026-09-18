@@ -125,6 +125,9 @@ coverage/
 # Mason folder
 mason/
 
+# Flutter incremental compile caches (not needed to ship build/web)
+**/*.cache.dill.track.dill
+
 # OpenSpec archived changes
 openspec/changes/archive/
 
